@@ -4,7 +4,7 @@
 <!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
 <head>
   <meta charset="utf-8">
-  <title>Authors &mdash; Ibis Project Blog</title>
+  <title>Ibis Design: Modeling high level analytics tasks &mdash; Ibis Project Blog</title>
   <meta name="author" content="Cloudera, Inc.">
 
   <link href="/atom.xml" type="application/atom+xml" rel="alternate"
@@ -1751,6 +1751,8 @@ jQuery(document).ready(function($) {
 
 
 
+
+
   <!-- http://t.co/dKP3o1e -->
   <meta name="HandheldFriendly" content="True">
   <meta name="MobileOptimized" content="320">
@@ -1787,13 +1789,896 @@ jQuery(document).ready(function($) {
   <div id="main">
     <div id="content">
 <div>
-	<article role="article">
-    	<header>
-    		<h1 class="entry-title">Blog Authors</h1>
-    	</header>
+  <article class="hentry" role="article">
+<header>
+      <h1 class="entry-title">Ibis Design: Modeling high level analytics tasks</h1>
+    <p class="meta">
+<time datetime="2015-08-10T08:00:00-07:00" pubdate>Mon 10 August 2015</time>    </p>
+</header>
 
-		<p><a href="http://blog.ibis-project.org/author/wes-mckinney.html">Wes McKinney</a> (3)</p>
-	</article>
+  <div class="entry-content"><p>
+<div class="text_cell_render border-box-sizing rendered_html">
+
+<p>Outside of scalability and high performance on large data sets with Python, Ibis is focused on simplifying analytics tasks for end users. By designing a rich pandas-like domain specific language (DSL) embedded in Python code, we can hide away the complexities normally associated with expressing analytical concepts in SQL or some other tool. This post gives some specific examples and shows how we're solving them in Ibis. </p>
+<!-- 
+* [TopK case study](#topkcasestudy)
+* [A better TopK](#bettertopk)
+* [Another example: bucketing](#bucketing)
+-->
+</div>
+<div class="text_cell_render border-box-sizing rendered_html">
+<h2 id="case-study-the-topk-operation"><a href="topkcasestudy"></a> Case Study: The TopK Operation</h2>
+<p>We've all been there; you have some higher cardinality category and you wish to restrict your analysis to a fixed subset of values according to a ranking that you devise. If you're using pandas, you might do something like:</p>
+<div class="sourceCode"><pre class="sourceCode python"><code class="sourceCode python">K <span class="op">=</span> <span class="dv">5</span>
+
+avg_value <span class="op">=</span> data.groupby(<span class="st">&#39;category&#39;</span>).value.mean()
+top_categories <span class="op">=</span> avg_value.order(ascending<span class="op">=</span><span class="va">False</span>)[:K].index
+
+filtered_data <span class="op">=</span> data[data.category.isin(top_categories)]</code></pre></div>
+<p>Let's look at a concrete example using both Ibis and SQL. I'm using the now-classic <a href="http://blog.ibis-project.org/pages/data.html">airlines dataset</a> in Parquet format.</p>
+</div>
+<div class="cell border-box-sizing code_cell vbox">
+<div class="input hbox">
+<div class="prompt input_prompt">
+In&nbsp;[1]:
+</div>
+<div class="input_area box-flex1">
+<div class="highlight-ipynb"><pre class="ipynb"><span class="kn">import</span> <span class="nn">ibis</span>
+
+<span class="n">ibis</span><span class="o">.</span><span class="n">options</span><span class="o">.</span><span class="n">interactive</span> <span class="o">=</span> <span class="bp">True</span>
+
+<span class="n">ic</span> <span class="o">=</span> <span class="n">ibis</span><span class="o">.</span><span class="n">impala_connect</span><span class="p">(</span><span class="s">&#39;bottou01.sjc.cloudera.com&#39;</span><span class="p">)</span>
+<span class="n">hdfs</span> <span class="o">=</span> <span class="n">ibis</span><span class="o">.</span><span class="n">hdfs_connect</span><span class="p">(</span><span class="s">&#39;bottou01.sjc.cloudera.com&#39;</span><span class="p">)</span>
+<span class="n">con</span> <span class="o">=</span> <span class="n">ibis</span><span class="o">.</span><span class="n">make_client</span><span class="p">(</span><span class="n">ic</span><span class="p">,</span> <span class="n">hdfs_client</span><span class="o">=</span><span class="n">hdfs</span><span class="p">)</span>
+
+<span class="n">airlines</span> <span class="o">=</span> <span class="n">con</span><span class="o">.</span><span class="n">parquet_file</span><span class="p">(</span><span class="s">&#39;/user/wesm/airlines-parquet&#39;</span><span class="p">,</span> <span class="n">persist</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> 
+                            <span class="n">name</span><span class="o">=</span><span class="s">&#39;airlines_parquet&#39;</span><span class="p">,</span> <span class="n">database</span><span class="o">=</span><span class="s">&#39;wes&#39;</span><span class="p">)</span>
+<span class="c"># airlines.compute_stats()</span>
+</pre></div>
+
+</div>
+</div>
+
+</div>
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>Let's look at the top 5 origin airports by total number of flights:</p>
+</div>
+<div class="cell border-box-sizing code_cell vbox">
+<div class="input hbox">
+<div class="prompt input_prompt">
+In&nbsp;[2]:
+</div>
+<div class="input_area box-flex1">
+<div class="highlight-ipynb"><pre class="ipynb"><span class="n">query</span> <span class="o">=</span> <span class="s">&quot;&quot;&quot;</span>
+<span class="s">SELECT origin, count(*) as `nrows`</span>
+<span class="s">FROM wes.airlines_parquet</span>
+<span class="s">GROUP BY 1</span>
+<span class="s">ORDER BY nrows DESC</span>
+<span class="s">LIMIT 5</span>
+<span class="s">&quot;&quot;&quot;</span>
+<span class="n">expr</span> <span class="o">=</span> <span class="n">con</span><span class="o">.</span><span class="n">sql</span><span class="p">(</span><span class="n">query</span><span class="p">)</span>
+<span class="n">expr</span>
+</pre></div>
+
+</div>
+</div>
+
+<div class="vbox output_wrapper">
+<div class="output vbox">
+
+
+<div class="hbox output_area"><div class="prompt output_prompt">
+    Out[2]:</div>
+<div class="box-flex1 output_subarea output_pyout">
+
+
+<pre>
+  origin    nrows
+0    ORD  6597442
+1    ATL  6100953
+2    DFW  5710980
+3    LAX  4089012
+4    PHX  3491077
+</pre>
+
+</div>
+</div>
+
+</div>
+</div>
+
+</div>
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>Constructed from SQL primitives, the TopK operation consists of 3 tasks</p>
+<ul>
+<li>Aggregate</li>
+<li>Sort</li>
+<li>Limit</li>
+</ul>
+<p>Here is the Impala query plan for this (use <code>con.explain(expr)</code> with Ibis to see it)</p>
+<pre><code>05:MERGING-EXCHANGE [UNPARTITIONED]
+|  order by: count(*) DESC
+|  limit: 5
+|
+02:TOP-N [LIMIT=5]
+|  order by: count(*) DESC
+|
+04:AGGREGATE [FINALIZE]
+|  output: count:merge(*)
+|  group by: origin
+|
+03:EXCHANGE [HASH(origin)]
+|
+01:AGGREGATE
+|  output: count(*)
+|  group by: origin
+|
+00:SCAN HDFS [wes.airlines_parquet]
+   partitions=1/1 files=8 size=1.34GB</code></pre>
+<p>As you can see, Impala, like most SQL engines, has the built-in notion of <code>TOP-N</code> in its query engine, but yet this is not expressible directly in SQL. Things get more complicated when you want to filter down to the categories in the result:</p>
+<pre><code>SELECT dest, avg(arrdelay) as `nrows`
+FROM wes.airlines_parquet
+WHERE origin in (
+  SELECT origin 
+  FROM (
+    SELECT origin, count(*) as `nrows`
+    FROM wes.airlines_parquet
+    GROUP BY 1
+    ORDER BY nrows DESC
+    LIMIT 5  
+  ) t0
+)
+GROUP BY 1</code></pre>
+<p>If you look at the query plan for this, it's more complicated but functionally contains the same TopK pattern plus a filter (using a <code>LEFT SEMI JOIN</code>, a type of efficient <em>filter join</em>).</p>
+</div>
+<div class="text_cell_render border-box-sizing rendered_html">
+<h2 id="a-better-topk-workflow-with-ibis"><a href="bettertopk"></a> A better TopK workflow with Ibis</h2>
+<p>Ibis is happy to let you build your own TopK expression using primitive operations:</p>
+</div>
+<div class="cell border-box-sizing code_cell vbox">
+<div class="input hbox">
+<div class="prompt input_prompt">
+In&nbsp;[3]:
+</div>
+<div class="input_area box-flex1">
+<div class="highlight-ipynb"><pre class="ipynb"><span class="n">top_origins</span> <span class="o">=</span> <span class="p">(</span><span class="n">airlines</span>
+               <span class="o">.</span><span class="n">group_by</span><span class="p">(</span><span class="s">&#39;origin&#39;</span><span class="p">)</span>
+               <span class="o">.</span><span class="n">aggregate</span><span class="p">(</span><span class="n">airlines</span><span class="o">.</span><span class="n">count</span><span class="p">()</span><span class="o">.</span><span class="n">name</span><span class="p">(</span><span class="s">&#39;nrows&#39;</span><span class="p">))</span>
+               <span class="o">.</span><span class="n">sort_by</span><span class="p">(</span><span class="n">ibis</span><span class="o">.</span><span class="n">desc</span><span class="p">(</span><span class="s">&#39;nrows&#39;</span><span class="p">))</span>
+               <span class="o">.</span><span class="n">limit</span><span class="p">(</span><span class="mi">5</span><span class="p">))</span>
+<span class="n">top_origins</span><span class="o">.</span><span class="n">execute</span><span class="p">()</span>
+</pre></div>
+
+</div>
+</div>
+
+<div class="vbox output_wrapper">
+<div class="output vbox">
+
+
+<div class="hbox output_area"><div class="prompt output_prompt">
+    Out[3]:</div>
+<div class="box-flex1 output_subarea output_pyout">
+
+<div class="output_html rendered_html">
+<div style="max-width:1500px;overflow:auto;">
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>origin</th>
+      <th>nrows</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>ORD</td>
+      <td>6597442</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>ATL</td>
+      <td>6100953</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>DFW</td>
+      <td>5710980</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>LAX</td>
+      <td>4089012</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>PHX</td>
+      <td>3491077</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+</div>
+
+</div>
+</div>
+
+</div>
+</div>
+
+</div>
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>This same aggregated table can be used as a filter, too:</p>
+</div>
+<div class="cell border-box-sizing code_cell vbox">
+<div class="input hbox">
+<div class="prompt input_prompt">
+In&nbsp;[4]:
+</div>
+<div class="input_area box-flex1">
+<div class="highlight-ipynb"><pre class="ipynb"><span class="c"># Replace nulls with 0</span>
+<span class="n">avg_delay</span> <span class="o">=</span> <span class="n">airlines</span><span class="o">.</span><span class="n">arrdelay</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">name</span><span class="p">(</span><span class="s">&#39;avg_delay&#39;</span><span class="p">)</span>
+
+<span class="n">subset_airlines</span> <span class="o">=</span> <span class="n">airlines</span><span class="p">[</span><span class="n">airlines</span><span class="o">.</span><span class="n">origin</span><span class="o">.</span><span class="n">isin</span><span class="p">(</span><span class="n">top_origins</span><span class="o">.</span><span class="n">origin</span><span class="p">)]</span>
+                    
+<span class="n">avg_delay_subset</span> <span class="o">=</span> <span class="p">(</span><span class="n">subset_airlines</span>
+                    <span class="o">.</span><span class="n">group_by</span><span class="p">(</span><span class="s">&#39;dest&#39;</span><span class="p">)</span>
+                    <span class="o">.</span><span class="n">aggregate</span><span class="p">(</span><span class="n">avg_delay</span><span class="p">)</span>
+                    <span class="o">.</span><span class="n">sort_by</span><span class="p">(</span><span class="n">ibis</span><span class="o">.</span><span class="n">desc</span><span class="p">(</span><span class="s">&#39;avg_delay&#39;</span><span class="p">))</span>
+                    <span class="o">.</span><span class="n">limit</span><span class="p">(</span><span class="mi">10</span><span class="p">))</span>
+<span class="n">avg_delay_subset</span><span class="o">.</span><span class="n">execute</span><span class="p">()</span>
+</pre></div>
+
+</div>
+</div>
+
+<div class="vbox output_wrapper">
+<div class="output vbox">
+
+
+<div class="hbox output_area"><div class="prompt output_prompt">
+    Out[4]:</div>
+<div class="box-flex1 output_subarea output_pyout">
+
+<div class="output_html rendered_html">
+<div style="max-width:1500px;overflow:auto;">
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>dest</th>
+      <th>avg_delay</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>RDM</td>
+      <td>29.558824</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>SOP</td>
+      <td>25.598706</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>MQT</td>
+      <td>25.367129</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>HHH</td>
+      <td>23.744963</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>ACY</td>
+      <td>20.344538</td>
+    </tr>
+    <tr>
+      <th>5</th>
+      <td>PSE</td>
+      <td>19.000000</td>
+    </tr>
+    <tr>
+      <th>6</th>
+      <td>CPR</td>
+      <td>18.383459</td>
+    </tr>
+    <tr>
+      <th>7</th>
+      <td>CWA</td>
+      <td>18.002533</td>
+    </tr>
+    <tr>
+      <th>8</th>
+      <td>SCE</td>
+      <td>16.741325</td>
+    </tr>
+    <tr>
+      <th>9</th>
+      <td>ATW</td>
+      <td>16.138655</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+</div>
+
+</div>
+</div>
+
+</div>
+</div>
+
+</div>
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>This is quite a bit of data gymnastics, though, and you haven't really modeled the fundamental Top-N task with the API. Because we have the power to create higher-level abstractions and expand them later into concrete operations (backend-dependent), we can craft a <code>topk</code> operation:</p>
+</div>
+<div class="cell border-box-sizing code_cell vbox">
+<div class="input hbox">
+<div class="prompt input_prompt">
+In&nbsp;[5]:
+</div>
+<div class="input_area box-flex1">
+<div class="highlight-ipynb"><pre class="ipynb"><span class="n">top_origins</span> <span class="o">=</span> <span class="n">airlines</span><span class="o">.</span><span class="n">origin</span><span class="o">.</span><span class="n">topk</span><span class="p">(</span><span class="mi">5</span><span class="p">)</span>
+</pre></div>
+
+</div>
+</div>
+
+</div>
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>The result of <code>topk</code> in Ibis is what's known as an <em>analytic expression</em>. Its behavior depends on the context in which it's used. It is executable as is, yielding the top 5 origins by count:</p>
+</div>
+<div class="cell border-box-sizing code_cell vbox">
+<div class="input hbox">
+<div class="prompt input_prompt">
+In&nbsp;[6]:
+</div>
+<div class="input_area box-flex1">
+<div class="highlight-ipynb"><pre class="ipynb"><span class="n">top_origins</span><span class="o">.</span><span class="n">execute</span><span class="p">()</span>
+</pre></div>
+
+</div>
+</div>
+
+<div class="vbox output_wrapper">
+<div class="output vbox">
+
+
+<div class="hbox output_area"><div class="prompt output_prompt">
+    Out[6]:</div>
+<div class="box-flex1 output_subarea output_pyout">
+
+<div class="output_html rendered_html">
+<div style="max-width:1500px;overflow:auto;">
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>origin</th>
+      <th>count</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>ORD</td>
+      <td>6597442</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>ATL</td>
+      <td>6100953</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>DFW</td>
+      <td>5710980</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>LAX</td>
+      <td>4089012</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>PHX</td>
+      <td>3491077</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+</div>
+
+</div>
+</div>
+
+</div>
+</div>
+
+</div>
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>But you can also use it directly as a table filter:</p>
+</div>
+<div class="cell border-box-sizing code_cell vbox">
+<div class="input hbox">
+<div class="prompt input_prompt">
+In&nbsp;[7]:
+</div>
+<div class="input_area box-flex1">
+<div class="highlight-ipynb"><pre class="ipynb"><span class="n">expr</span> <span class="o">=</span> <span class="p">(</span><span class="n">airlines</span><span class="p">[</span><span class="n">top_origins</span><span class="p">]</span>
+        <span class="o">.</span><span class="n">group_by</span><span class="p">(</span><span class="s">&#39;dest&#39;</span><span class="p">)</span>
+        <span class="o">.</span><span class="n">aggregate</span><span class="p">(</span><span class="n">avg_delay</span><span class="p">)</span>
+        <span class="o">.</span><span class="n">sort_by</span><span class="p">(</span><span class="n">ibis</span><span class="o">.</span><span class="n">desc</span><span class="p">(</span><span class="s">&#39;avg_delay&#39;</span><span class="p">))</span>
+        <span class="o">.</span><span class="n">limit</span><span class="p">(</span><span class="mi">10</span><span class="p">))</span>
+<span class="n">expr</span><span class="o">.</span><span class="n">execute</span><span class="p">()</span>
+</pre></div>
+
+</div>
+</div>
+
+<div class="vbox output_wrapper">
+<div class="output vbox">
+
+
+<div class="hbox output_area"><div class="prompt output_prompt">
+    Out[7]:</div>
+<div class="box-flex1 output_subarea output_pyout">
+
+<div class="output_html rendered_html">
+<div style="max-width:1500px;overflow:auto;">
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>dest</th>
+      <th>avg_delay</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>RDM</td>
+      <td>29.558824</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>SOP</td>
+      <td>25.598706</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>MQT</td>
+      <td>25.367129</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>HHH</td>
+      <td>23.744963</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>ACY</td>
+      <td>20.344538</td>
+    </tr>
+    <tr>
+      <th>5</th>
+      <td>PSE</td>
+      <td>19.000000</td>
+    </tr>
+    <tr>
+      <th>6</th>
+      <td>CPR</td>
+      <td>18.383459</td>
+    </tr>
+    <tr>
+      <th>7</th>
+      <td>CWA</td>
+      <td>18.002533</td>
+    </tr>
+    <tr>
+      <th>8</th>
+      <td>SCE</td>
+      <td>16.741325</td>
+    </tr>
+    <tr>
+      <th>9</th>
+      <td>ATW</td>
+      <td>16.138655</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+</div>
+
+</div>
+</div>
+
+</div>
+</div>
+
+</div>
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>What's going on here is that the <code>top_origins</code> expression is a sort of <em>logical data type</em> that hasn't yet been adapted to any physical data operations. There's a number of ways it can be used, and that adaptation process happens automatically:</p>
+</div>
+<div class="cell border-box-sizing code_cell vbox">
+<div class="input hbox">
+<div class="prompt input_prompt">
+In&nbsp;[8]:
+</div>
+<div class="input_area box-flex1">
+<div class="highlight-ipynb"><pre class="ipynb"><span class="nb">type</span><span class="p">(</span><span class="n">top_origins</span><span class="p">)</span>
+</pre></div>
+
+</div>
+</div>
+
+<div class="vbox output_wrapper">
+<div class="output vbox">
+
+
+<div class="hbox output_area"><div class="prompt output_prompt">
+    Out[8]:</div>
+<div class="box-flex1 output_subarea output_pyout">
+
+
+<pre>
+ibis.expr.operations.TopKExpr
+</pre>
+
+</div>
+</div>
+
+</div>
+</div>
+
+</div>
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>You might notice that I've sneakily done two TopK operations in a row, the first ranking by count and the second by average arrival delay. <code>topk</code> luckily gives you a way to provide a ranking metric other than count:</p>
+</div>
+<div class="cell border-box-sizing code_cell vbox">
+<div class="input hbox">
+<div class="prompt input_prompt">
+In&nbsp;[9]:
+</div>
+<div class="input_area box-flex1">
+<div class="highlight-ipynb"><pre class="ipynb"><span class="n">airlines</span><span class="o">.</span><span class="n">origin</span><span class="o">.</span><span class="n">topk</span><span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="n">by</span><span class="o">=</span><span class="n">avg_delay</span><span class="p">)</span><span class="o">.</span><span class="n">execute</span><span class="p">()</span>
+</pre></div>
+
+</div>
+</div>
+
+<div class="vbox output_wrapper">
+<div class="output vbox">
+
+
+<div class="hbox output_area"><div class="prompt output_prompt">
+    Out[9]:</div>
+<div class="box-flex1 output_subarea output_pyout">
+
+<div class="output_html rendered_html">
+<div style="max-width:1500px;overflow:auto;">
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>origin</th>
+      <th>avg_delay</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>FMN</td>
+      <td>164.0</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>OGD</td>
+      <td>148.4</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>CYS</td>
+      <td>122.0</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>BFF</td>
+      <td>93.0</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>PIR</td>
+      <td>33.5</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+</div>
+
+</div>
+</div>
+
+</div>
+</div>
+
+</div>
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>We can combine all this together to do a double-TopN:</p>
+</div>
+<div class="cell border-box-sizing code_cell vbox">
+<div class="input hbox">
+<div class="prompt input_prompt">
+In&nbsp;[10]:
+</div>
+<div class="input_area box-flex1">
+<div class="highlight-ipynb"><pre class="ipynb"><span class="k">def</span> <span class="nf">avg_delay</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">x</span><span class="o">.</span><span class="n">arrdelay</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">name</span><span class="p">(</span><span class="s">&#39;avg_delay&#39;</span><span class="p">)</span>
+    
+<span class="n">expr</span> <span class="o">=</span> <span class="n">airlines</span><span class="p">[</span><span class="n">top_origins</span><span class="p">]</span><span class="o">.</span><span class="n">dest</span><span class="o">.</span><span class="n">topk</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="n">by</span><span class="o">=</span><span class="n">avg_delay</span><span class="p">)</span>
+<span class="n">expr</span><span class="o">.</span><span class="n">execute</span><span class="p">()</span>
+</pre></div>
+
+</div>
+</div>
+
+<div class="vbox output_wrapper">
+<div class="output vbox">
+
+
+<div class="hbox output_area"><div class="prompt output_prompt">
+    Out[10]:</div>
+<div class="box-flex1 output_subarea output_pyout">
+
+<div class="output_html rendered_html">
+<div style="max-width:1500px;overflow:auto;">
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>dest</th>
+      <th>avg_delay</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>RDM</td>
+      <td>29.558824</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>SOP</td>
+      <td>25.598706</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>MQT</td>
+      <td>25.367129</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>HHH</td>
+      <td>23.744963</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>ACY</td>
+      <td>20.344538</td>
+    </tr>
+    <tr>
+      <th>5</th>
+      <td>PSE</td>
+      <td>19.000000</td>
+    </tr>
+    <tr>
+      <th>6</th>
+      <td>CPR</td>
+      <td>18.383459</td>
+    </tr>
+    <tr>
+      <th>7</th>
+      <td>CWA</td>
+      <td>18.002533</td>
+    </tr>
+    <tr>
+      <th>8</th>
+      <td>SCE</td>
+      <td>16.741325</td>
+    </tr>
+    <tr>
+      <th>9</th>
+      <td>ATW</td>
+      <td>16.138655</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+</div>
+
+</div>
+</div>
+
+</div>
+</div>
+
+</div>
+<div class="text_cell_render border-box-sizing rendered_html">
+<h2 id="another-example-bucketing">Another example: bucketing</h2>
+<p><a href="bucketing"></a></p>
+<p>Why stop there? After seeing lots of use cases in the wild where code reuse and composability would make analysts a great deal more productive, we'll be working to build more and more high level analytics tools into Ibis.</p>
+<p>As another example which I present as mostly code-only, consider the task of creating a discrete binning of arrival delays and computing a number of metrics. I'll let the code speak for itself:</p>
+</div>
+<div class="cell border-box-sizing code_cell vbox">
+<div class="input hbox">
+<div class="prompt input_prompt">
+In&nbsp;[11]:
+</div>
+<div class="input_area box-flex1">
+<div class="highlight-ipynb"><pre class="ipynb"><span class="n">airlines</span><span class="o">.</span><span class="n">arrdelay</span><span class="o">.</span><span class="n">summary</span><span class="p">()</span>
+</pre></div>
+
+</div>
+</div>
+
+<div class="vbox output_wrapper">
+<div class="output vbox">
+
+
+<div class="hbox output_area"><div class="prompt output_prompt">
+    Out[11]:</div>
+<div class="box-flex1 output_subarea output_pyout">
+
+
+<pre>
+       count    nulls   min   max        sum      mean  approx_nunique
+0  120947440  2587529 -1437  2598  852674931  7.049963            3801
+</pre>
+
+</div>
+</div>
+
+</div>
+</div>
+
+</div>
+<div class="cell border-box-sizing code_cell vbox">
+<div class="input hbox">
+<div class="prompt input_prompt">
+In&nbsp;[12]:
+</div>
+<div class="input_area box-flex1">
+<div class="highlight-ipynb"><pre class="ipynb"><span class="n">delay_buckets</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">30</span><span class="p">,</span> <span class="mi">60</span><span class="p">,</span> <span class="mi">120</span><span class="p">]</span>
+
+<span class="nb">bin</span> <span class="o">=</span> <span class="p">(</span><span class="n">airlines</span><span class="o">.</span><span class="n">arrdelay</span>
+       <span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+       <span class="o">.</span><span class="n">bucket</span><span class="p">(</span><span class="n">delay_buckets</span><span class="p">,</span> 
+               <span class="n">include_over</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
+               <span class="n">include_under</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span><span class="o">.</span><span class="n">name</span><span class="p">(</span><span class="s">&#39;delay_bin&#39;</span><span class="p">))</span>
+
+<span class="n">delay_summary</span> <span class="o">=</span> <span class="n">airlines</span><span class="o">.</span><span class="n">group_by</span><span class="p">(</span><span class="nb">bin</span><span class="p">)</span><span class="o">.</span><span class="n">arrdelay</span><span class="o">.</span><span class="n">summary</span><span class="p">()</span>
+<span class="n">delay_summary</span>
+</pre></div>
+
+</div>
+</div>
+
+<div class="vbox output_wrapper">
+<div class="output vbox">
+
+
+<div class="hbox output_area"><div class="prompt output_prompt">
+    Out[12]:</div>
+<div class="box-flex1 output_subarea output_pyout">
+
+
+<pre>
+   delay_bin     count    nulls   min   max        sum        mean  \
+0          3   4039142        0    60   120  333493735   82.565489   
+1          4   1594279        0   121  2598  290961107  182.503255   
+2          1  44759224        0     1    29  451748992   10.092869   
+3          0  63108269  2587529 -1437     0 -531724696   -8.425595   
+4          2   7446526        0    30    59  308195793   41.387862   
+
+   approx_nunique  
+0              62  
+1            2490  
+2              29  
+3             471  
+4              30  
+</pre>
+
+</div>
+</div>
+
+</div>
+</div>
+
+</div>
+<div class="cell border-box-sizing code_cell vbox">
+<div class="input hbox">
+<div class="prompt input_prompt">
+In&nbsp;[13]:
+</div>
+<div class="input_area box-flex1">
+<div class="highlight-ipynb"><pre class="ipynb"><span class="n">bin_name</span> <span class="o">=</span> <span class="p">(</span><span class="n">delay_summary</span><span class="o">.</span><span class="n">delay_bin</span>
+            <span class="o">.</span><span class="n">label</span><span class="p">([</span><span class="s">&#39;On time&#39;</span><span class="p">,</span> <span class="s">&#39;Less then 30 min&#39;</span><span class="p">,</span>
+                    <span class="s">&#39;30 min to 1 hour&#39;</span><span class="p">,</span> 
+                    <span class="s">&#39;1 to 2 hours&#39;</span><span class="p">,</span>
+                    <span class="s">&#39;More than 2 hours&#39;</span><span class="p">]))</span>
+<span class="n">expr</span> <span class="o">=</span> <span class="n">delay_summary</span><span class="o">.</span><span class="n">mutate</span><span class="p">(</span><span class="n">bin_name</span><span class="o">=</span><span class="n">bin_name</span><span class="p">)</span>
+<span class="n">expr</span><span class="o">.</span><span class="n">sort_by</span><span class="p">(</span><span class="s">&#39;delay_bin&#39;</span><span class="p">)</span>
+</pre></div>
+
+</div>
+</div>
+
+<div class="vbox output_wrapper">
+<div class="output vbox">
+
+
+<div class="hbox output_area"><div class="prompt output_prompt">
+    Out[13]:</div>
+<div class="box-flex1 output_subarea output_pyout">
+
+
+<pre>
+   delay_bin     count    nulls   min   max        sum        mean  \
+0          0  63108269  2587529 -1437     0 -531724696   -8.425595   
+1          1  44759224        0     1    29  451748992   10.092869   
+2          2   7446526        0    30    59  308195793   41.387862   
+3          3   4039142        0    60   120  333493735   82.565489   
+4          4   1594279        0   121  2598  290961107  182.503255   
+
+   approx_nunique           bin_name  
+0             471            On time  
+1              29   Less then 30 min  
+2              30   30 min to 1 hour  
+3              62       1 to 2 hours  
+4            2490  More than 2 hours  
+</pre>
+
+</div>
+</div>
+
+</div>
+</div>
+
+</div>
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>I'm a future posts I'll go into some more detail on category types in Ibis (like the result of <code>bucket</code>) and some of the other tools used here.</p>
+</div>
+<div class="cell border-box-sizing code_cell vbox">
+<div class="input hbox">
+<div class="prompt input_prompt">
+In&nbsp;[]:
+</div>
+<div class="input_area box-flex1">
+<div class="highlight-ipynb"><pre class="ipynb">
+</pre></div>
+
+</div>
+</div>
+
+</div></p></div>
+    <footer>
+<p class="meta">
+  <span class="byline author vcard">
+    Posted by <span class="fn">
+        <a href="http://blog.ibis-project.org/author/wes-mckinney.html">Wes McKinney</a>
+    </span>
+  </span>
+<time datetime="2015-08-10T08:00:00-07:00" pubdate>Mon 10 August 2015</time>
+</p><div class="sharing">
+  <a href="http://twitter.com/share" class="twitter-share-button" data-url="http://blog.ibis-project.org/design-modeling-analytics-1/" data-via="wesmckinn" data-counturl="http://blog.ibis-project.org/design-modeling-analytics-1/" >Tweet</a>
+</div>    </footer>
+  </article>
+
 </div>
 <aside class="sidebar">
   <section>

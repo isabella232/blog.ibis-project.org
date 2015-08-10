@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<feed xmlns="http://www.w3.org/2005/Atom"><title>Ibis Project Blog</title><link href="http://blog.ibis-project.org/" rel="alternate"></link><link href="/atom.xml" rel="self"></link><id>http://blog.ibis-project.org/</id><updated>2015-08-02T22:22:00-07:00</updated><entry><title>Using other compute engines with Ibis</title><link href="http://blog.ibis-project.org/articles/2015/08/02/other-compute-engines/" rel="alternate"></link><updated>2015-08-02T22:22:00-07:00</updated><author><name>Wes McKinney</name></author><id>tag:blog.ibis-project.org,2015-08-02:articles/2015/08/02/other-compute-engines/</id><summary type="html">
+<feed xmlns="http://www.w3.org/2005/Atom"><title>Ibis Project Blog</title><link href="http://blog.ibis-project.org/" rel="alternate"></link><link href="/atom.xml" rel="self"></link><id>http://blog.ibis-project.org/</id><updated>2015-08-02T22:22:00-07:00</updated><entry><title>Using other compute engines with Ibis</title><link href="http://blog.ibis-project.org/2015/08/02/other-compute-engines/" rel="alternate"></link><updated>2015-08-02T22:22:00-07:00</updated><author><name>Wes McKinney</name></author><id>tag:blog.ibis-project.org,2015-08-02:2015/08/02/other-compute-engines/</id><summary type="html">
 
 &lt;p&gt;Several people have asked me about using Ibis with execution engines other than
 Impala. The purpose of this post is to explain how one can make Ibis work with
@@ -212,7 +212,7 @@ straightforward and incremental. I will happily welcome well-tested
 contributions to the project.&lt;/p&gt;
 &lt;p&gt;In an upcoming blog post, I will write in some more detail about how Ibis will
 help bring about a post-SQL world and why that will be a productivity boon for
-data analysts everywhere.&lt;/p&gt;</summary></entry><entry><title>Hello World</title><link href="http://blog.ibis-project.org/articles/2015/07/23/hello-world/" rel="alternate"></link><updated>2015-07-23T19:41:00-07:00</updated><author><name>Wes McKinney</name></author><id>tag:blog.ibis-project.org,2015-07-23:articles/2015/07/23/hello-world/</id><summary type="html">
+data analysts everywhere.&lt;/p&gt;</summary></entry><entry><title>Hello World</title><link href="http://blog.ibis-project.org/2015/07/23/hello-world/" rel="alternate"></link><updated>2015-07-23T19:41:00-07:00</updated><author><name>Wes McKinney</name></author><id>tag:blog.ibis-project.org,2015-07-23:2015/07/23/hello-world/</id><summary type="html">
 
 &lt;p&gt;Welcome to the Ibis project blog. As the project develops we'll post here
 periodically with:&lt;/p&gt;

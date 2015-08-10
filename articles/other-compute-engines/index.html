@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Using other compute engines with Ibis &mdash; Ibis Project Blog</title>
+  <meta name="author" content="Cloudera, Inc.">
+
+  <link href="/atom.xml" type="application/atom+xml" rel="alternate"
+        title="Ibis Project Blog Atom Feed" />
+
+
+
+
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+
+    <link href="http://blog.ibis-project.org/favicon.png" rel="icon">
+
+  <link href="http://blog.ibis-project.org/theme/css/main.css" media="screen, projection"
+        rel="stylesheet" type="text/css">
+
+  <link href="//fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic"
+        rel="stylesheet" type="text/css">
+  <link href="//fonts.googleapis.com/css?family=PT+Sans:regular,italic,bold,bolditalic"
+        rel="stylesheet" type="text/css">
+</head>
+
+<body>
+  <header role="banner"><hgroup>
+  <h1><a href="http://blog.ibis-project.org/">Ibis Project Blog</a></h1>
+    <h2>Better Big Data with Python, powered by Impala. Development updates, use cases, and internals.</h2>
+</hgroup></header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="/atom.xml" rel="subscribe-atom">Atom</a></li>
+</ul>
+
+
+<ul class="main-navigation">
+    <li><a href="/archives.html">Archives</a></li>
+    <li><a href="http://docs.ibis-project.org">Documentation</a></li>
+    <li><a href="http://ibis-project.org">Project Website</a></li>
+      <li><a href="http://blog.ibis-project.org/pages/data.html">Data Collection</a></li>
+</ul></nav>
+  <div id="main">
+    <div id="content">
+<div>
+  <article class="hentry" role="article">
+<header>
+      <h1 class="entry-title">Using other compute engines with Ibis</h1>
+    <p class="meta">
+<time datetime="2015-08-02T22:22:00-07:00" pubdate>Sun 02 August 2015</time>    </p>
+</header>
+
+  <div class="entry-content">
+
+<p>Several people have asked me about using Ibis with execution engines other than
+Impala. The purpose of this post is to explain how one can make Ibis work with
+other systems and what that might mean for the actual users.</p>
+
+
+<h2>Context</h2>
+<p>A primary goal of Ibis is to enable users to productively solve data analysis
+problems at any scale using 100% Python code, while leveraging the existing
+ecosystem of 3rd party libraries and high performance computing tools as much
+as possible. Personally, I'd like to see folks using tools like Cython to
+accelerate mission-critical analytics on a petabyte of data, and we simply are
+not there yet.</p>
+<p>"100% Python" is not a gimmick; it means that Ibis, among other things, will
+also need to enable full utilization of the data analysis capabilities provided
+by SQL without writing any actual SQL code. The "writing SQL [in Python]
+without writing SQL" is such an important, and frankly nuanced, topic that I'm
+going to write a dedicated follow up blog post about it.</p>
+<p>Starting in late 2014, I began developing a joint roadmap with the Impala team
+at Cloudera to solve the painful performance and usability problems that Python
+programmers experience at large scale (multi-terabyte to petabyte
+workloads). Since I've been focused on support and integration with Impala
+(which I understand not everyone has available yet), people have asked me about
+using Ibis with other systems like:</p>
+<ul>
+<li>Other SQL-on-Hadoop compute engines: Hive, Presto, and others</li>
+<li>Other "full-stack" (storage + compute) SQL engines: PostgreSQL, MySQL,
+  Vertica, etc.</li>
+<li>Generalized compute engines: Spark</li>
+</ul>
+<p>Short answer: yes, if someone writes an Ibis expression translator for these
+platform targets, they can be used with them with no problems. Where things get
+dicey is how to make Python <em>user-defined functions</em> (which can't be compiled
+to SQL or some other form) run fast (or run at all); something that we are
+doing internal work in Impala to enable.</p>
+<p>I'm really excited in particular to see more SQL-based backends built for Ibis
+so that data analysts can just use Python instead of a mix of Python and SQL
+(the unfortunate status quo). It's not as much work as you might think.</p>
+<h2>Building new SQL backends for Ibis</h2>
+<p>Ibis contains a fully-decoupled data expression API that implements a <em>superset
+of SQL semantics</em>. My view is that if you can write it in SQL, you should be
+able to write it in a composable, reusable, and testable Pythonic (or
+pandas-ic?) way with Ibis.</p>
+<p>When you build and execute an Ibis expression using Impala SQL, here's what
+happens:</p>
+<ol>
+<li>
+<p>The expression is analyzed and validated (types and relational semantics)
+   while you're building it. So when you want to execute it you can be sure that
+   it is valid. All of this code lives in <code>ibis/expr</code> in the codebase. I'll
+   definitely write some follow up posts and documentation going into detail on
+   the expression API design.</p>
+</li>
+<li>
+<p>The expression is "compiled" to identify each component corresponding to the
+   parts of a SQL statement. See <code>ibis/sql/compiler.py</code> (NB. this module may
+   move in the future).</p>
+<ul>
+<li>In this step, further analysis takes place to expand higher-level Ibis
+  constructs into concrete low-level SQL primitives.</li>
+<li>Note this even handles all the SQL "weird stuff" like correlated
+  subqueries; I'll write more technical detail about this in the future.</li>
+</ul>
+</li>
+<li>
+<p>The compiled SELECT data structure is translated into a valid SQL query. This
+   falls into two buckets of functionality:</p>
+<ul>
+<li><code>ibis/sql/ddl.py</code>: the primary SQL statement builder classes.</li>
+<li><code>ibis/sql/exprs.py</code>: translates Ibis operations and arguments into
+  concrete SQL function calls. This includes all built-in analytical
+  functions functions, case statements, "synthetic" operations like
+  bucketing, window functions, and so forth.</li>
+</ul>
+</li>
+</ol>
+<p>To give you a concrete example, the Ibis code</p>
+<div class="highlight"><pre><span class="n">In</span> <span class="p">[</span><span class="mi">37</span><span class="p">]:</span> <span class="n">bucket</span> <span class="o">=</span> <span class="n">t</span><span class="o">.</span><span class="n">float_col</span><span class="o">.</span><span class="n">bucket</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">10</span><span class="p">])</span>
+
+<span class="n">In</span> <span class="p">[</span><span class="mi">38</span><span class="p">]:</span> <span class="n">double_pct</span> <span class="o">=</span> <span class="n">t</span><span class="o">.</span><span class="n">double_col</span> <span class="o">/</span> <span class="n">t</span><span class="o">.</span><span class="n">double_col</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+
+<span class="n">In</span> <span class="p">[</span><span class="mi">39</span><span class="p">]:</span> <span class="n">expr</span> <span class="o">=</span> <span class="p">(</span><span class="n">t</span><span class="o">.</span><span class="n">mutate</span><span class="p">(</span><span class="n">bucket</span><span class="o">=</span><span class="n">bucket</span><span class="p">,</span> <span class="n">double_pct</span><span class="o">=</span><span class="n">double_pct</span><span class="p">)</span>
+   <span class="o">....</span><span class="p">:</span>         <span class="o">.</span><span class="n">group_by</span><span class="p">([</span><span class="s">&#39;bucket&#39;</span><span class="p">,</span> <span class="s">&#39;string_col&#39;</span><span class="p">])</span>
+   <span class="o">....</span><span class="p">:</span>         <span class="o">.</span><span class="n">double_pct</span><span class="o">.</span><span class="n">summary</span><span class="p">())</span>
+
+<span class="n">In</span> <span class="p">[</span><span class="mi">40</span><span class="p">]:</span> <span class="n">expr</span><span class="o">.</span><span class="n">execute</span><span class="p">()</span>
+<span class="n">Out</span><span class="p">[</span><span class="mi">40</span><span class="p">]:</span>
+   <span class="n">bucket</span> <span class="n">string_col</span>  <span class="n">count</span>  <span class="n">nulls</span>       <span class="nb">min</span>       <span class="nb">max</span>       <span class="nb">sum</span>      <span class="n">mean</span>  <span class="n">approx_nunique</span>
+<span class="mi">0</span>       <span class="mi">0</span>          <span class="mi">1</span>    <span class="mi">730</span>      <span class="mi">0</span>  <span class="mf">0.000030</span>  <span class="mf">0.000030</span>  <span class="mf">0.022222</span>  <span class="mf">0.000030</span>               <span class="mi">1</span>
+<span class="mi">1</span>       <span class="mi">0</span>          <span class="mi">4</span>    <span class="mi">730</span>      <span class="mi">0</span>  <span class="mf">0.000122</span>  <span class="mf">0.000122</span>  <span class="mf">0.088889</span>  <span class="mf">0.000122</span>               <span class="mi">1</span>
+<span class="mi">2</span>       <span class="mi">1</span>          <span class="mi">6</span>    <span class="mi">730</span>      <span class="mi">0</span>  <span class="mf">0.000183</span>  <span class="mf">0.000183</span>  <span class="mf">0.133333</span>  <span class="mf">0.000183</span>               <span class="mi">1</span>
+<span class="mi">3</span>       <span class="mi">1</span>          <span class="mi">9</span>    <span class="mi">730</span>      <span class="mi">0</span>  <span class="mf">0.000274</span>  <span class="mf">0.000274</span>  <span class="mf">0.200000</span>  <span class="mf">0.000274</span>               <span class="mi">1</span>
+<span class="mi">4</span>       <span class="mi">0</span>          <span class="mi">3</span>    <span class="mi">730</span>      <span class="mi">0</span>  <span class="mf">0.000091</span>  <span class="mf">0.000091</span>  <span class="mf">0.066667</span>  <span class="mf">0.000091</span>               <span class="mi">1</span>
+<span class="mi">5</span>       <span class="mi">0</span>          <span class="mi">0</span>    <span class="mi">730</span>      <span class="mi">0</span>  <span class="mf">0.000000</span>  <span class="mf">0.000000</span>  <span class="mf">0.000000</span>  <span class="mf">0.000000</span>               <span class="mi">1</span>
+<span class="mi">6</span>       <span class="mi">1</span>          <span class="mi">5</span>    <span class="mi">730</span>      <span class="mi">0</span>  <span class="mf">0.000152</span>  <span class="mf">0.000152</span>  <span class="mf">0.111111</span>  <span class="mf">0.000152</span>               <span class="mi">1</span>
+<span class="mi">7</span>       <span class="mi">1</span>          <span class="mi">7</span>    <span class="mi">730</span>      <span class="mi">0</span>  <span class="mf">0.000213</span>  <span class="mf">0.000213</span>  <span class="mf">0.155556</span>  <span class="mf">0.000213</span>               <span class="mi">1</span>
+<span class="mi">8</span>       <span class="mi">1</span>          <span class="mi">8</span>    <span class="mi">730</span>      <span class="mi">0</span>  <span class="mf">0.000244</span>  <span class="mf">0.000244</span>  <span class="mf">0.177778</span>  <span class="mf">0.000244</span>               <span class="mi">1</span>
+<span class="mi">9</span>       <span class="mi">0</span>          <span class="mi">2</span>    <span class="mi">730</span>      <span class="mi">0</span>  <span class="mf">0.000061</span>  <span class="mf">0.000061</span>  <span class="mf">0.044444</span>  <span class="mf">0.000061</span>               <span class="mi">1</span>
+</pre></div>
+
+
+<p>internally runs the SQL query</p>
+<div class="highlight"><pre><span class="k">SELECT</span> <span class="n">bucket</span><span class="p">,</span> <span class="n">string_col</span><span class="p">,</span> <span class="k">count</span><span class="p">(</span><span class="n">double_pct</span><span class="p">)</span> <span class="k">AS</span> <span class="o">`</span><span class="k">count</span><span class="o">`</span><span class="p">,</span>
+       <span class="k">sum</span><span class="p">(</span><span class="n">double_pct</span> <span class="k">IS</span> <span class="k">NULL</span><span class="p">)</span> <span class="k">AS</span> <span class="o">`</span><span class="n">nulls</span><span class="o">`</span><span class="p">,</span> <span class="k">min</span><span class="p">(</span><span class="n">double_pct</span><span class="p">)</span> <span class="k">AS</span> <span class="o">`</span><span class="k">min</span><span class="o">`</span><span class="p">,</span>
+       <span class="k">max</span><span class="p">(</span><span class="n">double_pct</span><span class="p">)</span> <span class="k">AS</span> <span class="o">`</span><span class="k">max</span><span class="o">`</span><span class="p">,</span> <span class="k">sum</span><span class="p">(</span><span class="n">double_pct</span><span class="p">)</span> <span class="k">AS</span> <span class="o">`</span><span class="k">sum</span><span class="o">`</span><span class="p">,</span>
+       <span class="k">avg</span><span class="p">(</span><span class="n">double_pct</span><span class="p">)</span> <span class="k">AS</span> <span class="o">`</span><span class="n">mean</span><span class="o">`</span><span class="p">,</span> <span class="n">ndv</span><span class="p">(</span><span class="n">double_pct</span><span class="p">)</span> <span class="k">AS</span> <span class="o">`</span><span class="n">approx_nunique</span><span class="o">`</span>
+<span class="k">FROM</span> <span class="p">(</span>
+  <span class="k">SELECT</span> <span class="o">*</span><span class="p">,</span>
+    <span class="k">CASE</span>
+      <span class="k">WHEN</span> <span class="p">(</span><span class="n">float_col</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">)</span> <span class="k">AND</span> <span class="p">(</span><span class="n">float_col</span> <span class="o">&lt;</span> <span class="mi">5</span><span class="p">)</span> <span class="k">THEN</span> <span class="mi">0</span>
+      <span class="k">WHEN</span> <span class="p">(</span><span class="n">float_col</span> <span class="o">&gt;=</span> <span class="mi">5</span><span class="p">)</span> <span class="k">AND</span> <span class="p">(</span><span class="n">float_col</span> <span class="o">&lt;=</span> <span class="mi">10</span><span class="p">)</span> <span class="k">THEN</span> <span class="mi">1</span>
+      <span class="k">ELSE</span> <span class="k">NULL</span>
+    <span class="k">END</span> <span class="k">AS</span> <span class="o">`</span><span class="n">bucket</span><span class="o">`</span><span class="p">,</span> <span class="n">double_col</span> <span class="o">/</span> <span class="k">sum</span><span class="p">(</span><span class="n">double_col</span><span class="p">)</span> <span class="n">OVER</span> <span class="p">()</span> <span class="k">AS</span> <span class="o">`</span><span class="n">double_pct</span><span class="o">`</span>
+  <span class="k">FROM</span> <span class="n">ibis_testing</span><span class="p">.</span><span class="o">`</span><span class="n">functional_alltypes</span><span class="o">`</span>
+<span class="p">)</span> <span class="n">t0</span>
+<span class="k">GROUP</span> <span class="k">BY</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span>
+</pre></div>
+
+
+<p>Ibis's SQL translation toolchain is extensively tested in <code>ibis/sql/tests</code>.</p>
+<p>Adapting Ibis to work with other systems that use the SQL language primarily
+involves addressing engine-specific differences in Step 3. There may be some
+nuances in Step 2; as a concrete example, not all databases have explicit
+semi-joins, which Ibis uses to adapt Top-N filter operations.</p>
+<p>If you want to enable Ibis to use a SQL engine that you have available, like
+Vertica or PostgreSQL, I am happy to guide you in the efforts to begin building
+a test suite and refactoring Ibis's SQL translation subsystem to target
+multiple SQL dialects. The hard part (and why I won't promise to build the
+integrations myself) is thorough integration testing; think of it as "code
+coverage" for SQL. It's not enough to generate the queries; you have to make
+sure they work.</p>
+<h2>Executing Ibis expressions with pandas?</h2>
+<p>This is hypothetically possible, but there are some feature gaps in pandas, and
+pandas's loose type system (and known issues with <code>NULL</code> / <code>NA</code> values) would
+be a barrier. If someone wants to discuss this with me in more detail please
+get in touch.</p>
+<p>I expect that an in-memory backend for Ibis will exist at some point in the
+future, but it's unlikely to use pandas. Interoperability with pandas is a
+separate issue, and using Ibis alongside pandas is a primary use case.</p>
+<h2>Why Ibis doesn't use SQLAlchemy (yet)</h2>
+<p>Several people have asked me, "Wes, why aren't you using
+<a href="http://www.sqlalchemy.org/">SQLAlchemy</a> to generate SQL code in Ibis? It does
+away with all the database-specific differences!"  This is only half true. Here
+are the main reasons:</p>
+<ul>
+<li>Impala will soon have complex types and its own SQL syntax for expressing
+  queries involving arrays, structs, and maps as primitive value types. Engines
+  like Presto also have this functionality and their own syntax for writing
+  queries on such data. SQLAlchemy support for complex types is unlikely to
+  drop in time (i.e. the next 6 months or sooner).</li>
+<li>We have to write interface code to wrap all the SQL built-in functions, and
+  many of these are database specific. SQLAlchemy provides an extension API for
+  wrapping functions, but it was easier, at least initially, to handle all the
+  function wrapping within Ibis.</li>
+<li>Impala, like Hive, has various big data-specific DDL commands and modifiers;
+  we are generating more than only <code>SELECT</code>, <code>INSERT</code>, and <code>CREATE TABLE</code>
+  statements.</li>
+</ul>
+<p>That being said, I would like to see a SQLAlchemy version of Ibis's SQL
+translation toolchain, in particular for targeting traditional RDBMSs like
+PostgreSQL or MySQL.</p>
+<p>SQLAlchemy handles a number of things, like input sanitization, that Ibis does
+not yet, so there are likely some code reuse opportunities there.</p>
+<h2>Why Impala is so key to the Ibis vision</h2>
+<p>Among the production-grade open source big data systems one may consider,
+Impala is the only one that does not run on the JVM. So, SQL performance /
+interactivity considerations aside, we (myself and the Impala team) are working
+on shared memory / binary interoperability with Python that eliminates the data
+serialization and memory use overhead that has plagued Python extension APIs
+(for user-defined functions) on top of JVM-based runtimes. Most importantly, it
+will allow users to use scientific Python tools (like Cython) to write high
+performance code that operates on data flowing around the Impala C++/LLVM
+runtime. If you have to pay a high transfer cost to move data to and from
+Python, the benefits of such tools can be largely negated in many use cases.</p>
+<h2>Will Ibis be useful without Impala</h2>
+<p>Oh, yes, incredibly useful. The value of writing Python code (high level)
+instead of SQL code (low level) is extremely high. More on this in a future
+post.</p>
+<h2>About Blaze (Python project)</h2>
+<p><a href="http://blaze.pydata.org">Blaze</a> (from my friends at <a href="http://continuum.io">Continuum Analytics</a>) is a Python project with <em>some</em> overlapping
+goals with Ibis. Both use the same general technical approach of building a
+decoupled expression API with a separate compiler-executor. Overall I would
+describe them as providing two distinct domain specific languages for
+structured data having different priorities (based on what I see on GitHub).</p>
+<p>While it's too nuanced for this blog post, I will state my views on how Blaze
+is similar to / different from Ibis as follows:</p>
+<ul>
+<li>Blaze has varying levels of support for <em>lots of backends</em>. The price of this
+  is that any given backend is likely missing substantial functionality in
+  Blaze's expression API (I know this to be true from reading the test
+  suite). We started Ibis with comprehensive coverage of <em>one backend</em> (Impala,
+  for which we are developing an efficient Python extension API) as a blueprint
+  for additional backends to be contributed by the community.</li>
+<li>I don't believe it was ever a goal of Blaze to replace SQL (the language) in
+  user workflows.</li>
+<li>Blaze's expression API is designed fairly differently. I may do an in-depth
+  comparison of how the differences play out in real code (sooner if a lot of
+  people are interested).</li>
+</ul>
+<p>Complete coverage of the functionality provided by <em>one</em> SQL engine is
+truthfully a fairly difficult problem. There are canonical database benchmark
+suites like TPC-H and TPC-DS that you can use to put a lot of stress on any
+given DSL that can emit SQL queries.</p>
+<p>If you're trying to decide which project to use, look at the projects (the test
+suites, in particular) and make your own decisions.</p>
+<h2>Summary</h2>
+<p>With the current completeness of the Impala SQL backend in Ibis, the work of
+integrating with other data engines that speak SQL is relatively
+straightforward and incremental. I will happily welcome well-tested
+contributions to the project.</p>
+<p>In an upcoming blog post, I will write in some more detail about how Ibis will
+help bring about a post-SQL world and why that will be a productivity boon for
+data analysts everywhere.</p></div>
+    <footer>
+<p class="meta">
+  <span class="byline author vcard">
+    Posted by <span class="fn">
+        <a href="http://blog.ibis-project.org/author/wes-mckinney.html">Wes McKinney</a>
+    </span>
+  </span>
+<time datetime="2015-08-02T22:22:00-07:00" pubdate>Sun 02 August 2015</time>
+</p><div class="sharing">
+  <a href="http://twitter.com/share" class="twitter-share-button" data-url="http://blog.ibis-project.org/articles/other-compute-engines/" data-via="wesmckinn" data-counturl="http://blog.ibis-project.org/articles/other-compute-engines/" >Tweet</a>
+</div>    </footer>
+  </article>
+
+</div>
+<aside class="sidebar">
+  <section>
+    <h1>Recent Posts</h1>
+    <ul id="recent_posts">
+      <li class="post">
+          <a href="http://blog.ibis-project.org/articles/other-compute-engines/">Using other compute engines with Ibis</a>
+      </li>
+      <li class="post">
+          <a href="http://blog.ibis-project.org/articles/hello-world/">Hello World</a>
+      </li>
+    </ul>
+  </section>
+  <section>
+
+
+
+
+    <section>
+        <h1>Blogroll</h1>
+        <ul>
+            <li><a href="http://github.com/cloudera/ibis" target="_blank">Ibis Codebase</a></li>
+            <li><a href="http://impala.io" target="_blank">Impala Website</a></li>
+            <li><a href="http://blog.wesmckinney.com" target="_blank">Wes McKinney's Blog</a></li>
+        </ul>
+    </section>
+
+<section>
+    <a href="http://twitter.com/wesmckinn" class="twitter-follow-button" data-show-count="true">Follow @wesmckinn</a>
+</section>
+</aside>    </div>
+  </div>
+  <footer role="contentinfo"><p>
+    Copyright &copy;  2015  Cloudera, Inc. &mdash;
+  <span class="credit">Powered by <a href="http://getpelican.com">Pelican</a></span>
+</p></footer>
+  <script src="http://blog.ibis-project.org/theme/js/modernizr-2.0.js"></script>
+  <script src="http://blog.ibis-project.org/theme/js/ender.js"></script>
+  <script src="http://blog.ibis-project.org/theme/js/octopress.js" type="text/javascript"></script>
+    <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-65303298-3']);
+    _gaq.push(['_trackPageview']);
+    (function() {
+        var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+        ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+        var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+
+    (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+    (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+    m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+    })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+    ga('create', 'UA-65303298-3');
+    ga('send', 'pageview');
+</script>
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = '//platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+</body>
+</html>

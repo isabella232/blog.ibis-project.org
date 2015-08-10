@@ -854,7 +854,7 @@ In&amp;nbsp;[13]:
 
 &lt;/div&gt;
 &lt;div class="text_cell_render border-box-sizing rendered_html"&gt;
-&lt;p&gt;I'm a future posts I'll go into some more detail on category types in Ibis (like the result of &lt;code&gt;bucket&lt;/code&gt;) and some of the other tools used here.&lt;/p&gt;
+&lt;p&gt;In future posts I'll go into some more detail on category types in Ibis (like the result of &lt;code&gt;bucket&lt;/code&gt;) and some of the other tools used here.&lt;/p&gt;
 &lt;/div&gt;&lt;/p&gt;</summary></entry><entry><title>Using other compute engines with Ibis</title><link href="http://blog.ibis-project.org/other-compute-engines/" rel="alternate"></link><updated>2015-08-02T22:22:00-07:00</updated><author><name>Wes McKinney</name></author><id>tag:blog.ibis-project.org,2015-08-02:other-compute-engines/</id><summary type="html">
 
 &lt;p&gt;Several people have asked me about using Ibis with execution engines other than

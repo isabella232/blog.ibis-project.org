@@ -11,7 +11,7 @@ blog posts):&lt;/p&gt;
 &lt;li&gt;Better composability and chaining by passing functions as parameters&lt;/li&gt;
 &lt;li&gt;An ORM-like layer for interactive with database objects&lt;/li&gt;
 &lt;li&gt;&lt;a href="http://blog.ibis-project.org/design-modeling-analytics-1/"&gt;Enhanced TopK expressions&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;Support for Kerberos-enabled secure HDFS cluster&lt;/li&gt;
+&lt;li&gt;Support for Kerberos-enabled secure HDFS clusters&lt;/li&gt;
 &lt;/ul&gt;
 &lt;p&gt;Thanks to all who contributed patches:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span class="nv"&gt;$ &lt;/span&gt;git log v0.3.0..v0.4.0 --pretty&lt;span class="o"&gt;=&lt;/span&gt;format:%aN &lt;span class="p"&gt;|&lt;/span&gt; sort &lt;span class="p"&gt;|&lt;/span&gt; uniq -c &lt;span class="p"&gt;|&lt;/span&gt; sort -rn

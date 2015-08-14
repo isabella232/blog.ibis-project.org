@@ -1,5 +1,34 @@
 <?xml version="1.0" encoding="utf-8"?>
-<feed xmlns="http://www.w3.org/2005/Atom"><title>Ibis Project Blog</title><link href="http://blog.ibis-project.org/" rel="alternate"></link><link href="/atom.xml" rel="self"></link><id>http://blog.ibis-project.org/</id><updated>2015-08-10T08:00:00-07:00</updated><entry><title>Ibis Design: Modeling high level analytics tasks</title><link href="http://blog.ibis-project.org/design-modeling-analytics-1/" rel="alternate"></link><updated>2015-08-10T08:00:00-07:00</updated><author><name>Wes McKinney</name></author><id>tag:blog.ibis-project.org,2015-08-10:design-modeling-analytics-1/</id><summary type="html">&lt;p&gt;
+<feed xmlns="http://www.w3.org/2005/Atom"><title>Ibis Project Blog</title><link href="http://blog.ibis-project.org/" rel="alternate"></link><link href="/atom.xml" rel="self"></link><id>http://blog.ibis-project.org/</id><updated>2015-08-14T09:30:00-07:00</updated><entry><title>Ibis 0.4.0 release</title><link href="http://blog.ibis-project.org/release-0.4/" rel="alternate"></link><updated>2015-08-14T09:30:00-07:00</updated><author><name>Wes McKinney</name></author><id>tag:blog.ibis-project.org,2015-08-14:release-0.4/</id><summary type="html">
+
+&lt;p&gt;The next Ibis release is out, check out the detailed &lt;a href="http://docs.ibis-project.org/impala-udf.html"&gt;release notes&lt;/a&gt;.&lt;/p&gt;
+
+
+&lt;p&gt;Notable features in this release (some of which will be the subject of upcoming
+blog posts):&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;Using Impala user-defined C++ functions with Ibis (&lt;a href="http://docs.ibis-project.org/impala-udf.html"&gt;docs here&lt;/a&gt;).&lt;/li&gt;
+&lt;li&gt;Better composability and chaining by passing functions as parameters&lt;/li&gt;
+&lt;li&gt;An ORM-like layer for interactive with database objects&lt;/li&gt;
+&lt;li&gt;&lt;a href="http://blog.ibis-project.org/design-modeling-analytics-1/"&gt;Enhanced TopK expressions&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;Support for Kerberos-enabled secure HDFS cluster&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;The next major release will offer&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;Python 3 support (this was blocked on upstream dependencies, sorry)&lt;/li&gt;
+&lt;li&gt;Impala C++ aggregate function (UDA) support&lt;/li&gt;
+&lt;li&gt;Async expression execution API (cancellation, progress, etc.)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;I'm looking for people interested in helping buildi Ibis support for any of the
+following compute engines:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;Hive&lt;/li&gt;
+&lt;li&gt;PostgreSQL flavors: Redshift, PostgreSQL, HP Vertica&lt;/li&gt;
+&lt;li&gt;MySQL&lt;/li&gt;
+&lt;li&gt;SQLite&lt;/li&gt;
+&lt;li&gt;Presto&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;If interested please contact me.&lt;/p&gt;</summary></entry><entry><title>Ibis Design: Modeling high level analytics tasks</title><link href="http://blog.ibis-project.org/design-modeling-analytics-1/" rel="alternate"></link><updated>2015-08-10T08:00:00-07:00</updated><author><name>Wes McKinney</name></author><id>tag:blog.ibis-project.org,2015-08-10:design-modeling-analytics-1/</id><summary type="html">&lt;p&gt;
 &lt;div class="text_cell_render border-box-sizing rendered_html"&gt;
 
 &lt;p&gt;Outside of scalability and high performance on large data sets with Python, Ibis is focused on simplifying analytics tasks for end users. By designing a rich pandas-like domain specific language (DSL) embedded in Python code, we can hide away the complexities normally associated with expressing analytical concepts in SQL or some other tool. This post gives some specific examples and shows how we're solving them in Ibis. &lt;/p&gt;

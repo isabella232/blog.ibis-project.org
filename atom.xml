@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <feed xmlns="http://www.w3.org/2005/Atom"><title>Ibis Project Blog</title><link href="http://blog.ibis-project.org/" rel="alternate"></link><link href="/atom.xml" rel="self"></link><id>http://blog.ibis-project.org/</id><updated>2015-08-14T09:30:00-07:00</updated><entry><title>Ibis 0.4.0 release</title><link href="http://blog.ibis-project.org/release-0.4/" rel="alternate"></link><updated>2015-08-14T09:30:00-07:00</updated><author><name>Wes McKinney</name></author><id>tag:blog.ibis-project.org,2015-08-14:release-0.4/</id><summary type="html">
 
-&lt;p&gt;The next Ibis release is out, check out the detailed &lt;a href="http://docs.ibis-project.org/impala-udf.html"&gt;release notes&lt;/a&gt;.&lt;/p&gt;
+&lt;p&gt;The next Ibis release is out, check out the detailed &lt;a href="http://docs.ibis-project.org/release.html"&gt;release notes&lt;/a&gt;.&lt;/p&gt;
 
 
 &lt;p&gt;Notable features in this release (some of which will be the subject of upcoming

@@ -13,6 +13,16 @@ blog posts):&lt;/p&gt;
 &lt;li&gt;&lt;a href="http://blog.ibis-project.org/design-modeling-analytics-1/"&gt;Enhanced TopK expressions&lt;/a&gt;&lt;/li&gt;
 &lt;li&gt;Support for Kerberos-enabled secure HDFS cluster&lt;/li&gt;
 &lt;/ul&gt;
+&lt;p&gt;Thanks to all who contributed patches:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span class="nv"&gt;$ &lt;/span&gt;git log v0.3.0..v0.4.0 --pretty&lt;span class="o"&gt;=&lt;/span&gt;format:%aN &lt;span class="p"&gt;|&lt;/span&gt; sort &lt;span class="p"&gt;|&lt;/span&gt; uniq -c &lt;span class="p"&gt;|&lt;/span&gt; sort -rn
+     &lt;span class="m"&gt;38&lt;/span&gt; Wes McKinney
+      &lt;span class="m"&gt;9&lt;/span&gt; Uri Laserson
+      &lt;span class="m"&gt;2&lt;/span&gt; Meghana Vuyyuru
+      &lt;span class="m"&gt;2&lt;/span&gt; Kristopher Overholt
+      &lt;span class="m"&gt;1&lt;/span&gt; Marius van Niekerk
+&lt;/pre&gt;&lt;/div&gt;
+
+
 &lt;p&gt;The next major release will offer&lt;/p&gt;
 &lt;ul&gt;
 &lt;li&gt;Python 3 support (this was blocked on upstream dependencies, sorry)&lt;/li&gt;

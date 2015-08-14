@@ -9,7 +9,7 @@ blog posts):&lt;/p&gt;
 &lt;ul&gt;
 &lt;li&gt;Using Impala user-defined C++ functions with Ibis (&lt;a href="http://docs.ibis-project.org/impala-udf.html"&gt;docs here&lt;/a&gt;).&lt;/li&gt;
 &lt;li&gt;Better composability and chaining by passing functions as parameters&lt;/li&gt;
-&lt;li&gt;An ORM-like layer for interactive with database objects&lt;/li&gt;
+&lt;li&gt;An ORM-like layer for interacting with database objects&lt;/li&gt;
 &lt;li&gt;&lt;a href="http://blog.ibis-project.org/design-modeling-analytics-1/"&gt;Enhanced TopK expressions&lt;/a&gt;&lt;/li&gt;
 &lt;li&gt;Support for Kerberos-enabled secure HDFS clusters&lt;/li&gt;
 &lt;/ul&gt;

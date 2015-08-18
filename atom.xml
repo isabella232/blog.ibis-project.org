@@ -1,5 +1,283 @@
 <?xml version="1.0" encoding="utf-8"?>
-<feed xmlns="http://www.w3.org/2005/Atom"><title>Ibis Project Blog</title><link href="http://blog.ibis-project.org/" rel="alternate"></link><link href="/atom.xml" rel="self"></link><id>http://blog.ibis-project.org/</id><updated>2015-08-17T08:00:00-07:00</updated><entry><title>Leveraging SQL window functions in Ibis</title><link href="http://blog.ibis-project.org/sql-window-functions/" rel="alternate"></link><updated>2015-08-17T08:00:00-07:00</updated><author><name>Wes McKinney</name></author><id>tag:blog.ibis-project.org,2015-08-17:sql-window-functions/</id><summary type="html">&lt;p&gt;
+<feed xmlns="http://www.w3.org/2005/Atom"><title>Ibis Project Blog</title><link href="http://blog.ibis-project.org/" rel="alternate"></link><link href="/atom.xml" rel="self"></link><id>http://blog.ibis-project.org/</id><updated>2015-08-18T08:00:00-07:00</updated><entry><title>Ibis expressions: Pythonic composability and evaluation</title><link href="http://blog.ibis-project.org/design-composability/" rel="alternate"></link><updated>2015-08-18T08:00:00-07:00</updated><author><name>Wes McKinney</name></author><id>tag:blog.ibis-project.org,2015-08-18:design-composability/</id><summary type="html">&lt;p&gt;
+&lt;div class="text_cell_render border-box-sizing rendered_html"&gt;
+
+&lt;p&gt;The R community, especially my friend &lt;a href="http://twitter.com/hadleywickham"&gt;Hadley Wickham&lt;/a&gt;, has done pioneering work in creating expressive and useful domain-specific languages (DSLs) embedded in the R programming language. This articles gives some technical detail on composability and evaluation semantics in R and related work in Ibis to solve the same kinds of problems in a Pythonic way.&lt;/p&gt;
+
+&lt;h1 id="non-standard-evaluation-in-dplyr"&gt;Non-standard evaluation in dplyr&lt;/h1&gt;
+&lt;p&gt;In Hadley's book &lt;em&gt;Advanced R&lt;/em&gt;, he gives &lt;a href="http://adv-r.had.co.nz/Computing-on-the-language.html"&gt;an extensive look&lt;/a&gt; at a tool available to R programmers called &lt;em&gt;non-standard evaluation&lt;/em&gt; (NSE). Users of &lt;code&gt;ggplot2&lt;/code&gt; or &lt;code&gt;dplyr&lt;/code&gt; (or other Hadleyverse packages) will be familiar with this — it is also used in base R for model formulas.&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;NB. For the programming language junkies, NSE originates from the homoiconic Lisp tradition of &amp;quot;code as data&amp;quot;. The R language implementation &lt;em&gt;is&lt;/em&gt; at its core a kind of Lisp interpreter!&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;Let's take an example from one of the dplyr vignettes on everyone's favorite &lt;a href="http://blog.ibis-project.org/pages/data.html"&gt;airlines dataset&lt;/a&gt;.&lt;/p&gt;
+&lt;div class="sourceCode"&gt;&lt;pre class="sourceCode r"&gt;&lt;code class="sourceCode r"&gt;airlines %&amp;gt;%
+&lt;span class="st"&gt;  &lt;/span&gt;&lt;span class="kw"&gt;filter&lt;/span&gt;(!&lt;span class="kw"&gt;is.na&lt;/span&gt;(dep_delay)) %&amp;gt;%
+&lt;span class="st"&gt;  &lt;/span&gt;&lt;span class="kw"&gt;group_by&lt;/span&gt;(year, month, day) %&amp;gt;%
+&lt;span class="st"&gt;  &lt;/span&gt;&lt;span class="kw"&gt;summarise&lt;/span&gt;(&lt;span class="dt"&gt;delay =&lt;/span&gt; &lt;span class="kw"&gt;mean&lt;/span&gt;(dep_delay)) %&amp;gt;%
+&lt;span class="st"&gt;  &lt;/span&gt;&lt;span class="kw"&gt;arrange&lt;/span&gt;(&lt;span class="kw"&gt;desc&lt;/span&gt;(delay)) %&amp;gt;%
+&lt;span class="st"&gt;  &lt;/span&gt;&lt;span class="kw"&gt;head&lt;/span&gt;(&lt;span class="dv"&gt;5&lt;/span&gt;)&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;As a Python programmer, you might ask &amp;quot;what in tarnation is going on here?&amp;quot;. Indeed, very few of the symbols in this code block are valid variables in the local scope. The short story is that the code (or &lt;em&gt;data&lt;/em&gt; would be more accurate) inside the function calls is evaluated in the context of the &amp;quot;calling&amp;quot; data frame. So the NSE code&lt;/p&gt;
+&lt;div class="sourceCode"&gt;&lt;pre class="sourceCode r"&gt;&lt;code class="sourceCode r"&gt;airlines %&amp;gt;%&lt;span class="st"&gt; &lt;/span&gt;
+&lt;span class="st"&gt;  &lt;/span&gt;&lt;span class="kw"&gt;filter&lt;/span&gt;(!&lt;span class="kw"&gt;is.na&lt;/span&gt;(dep_delay))&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;Is equivalent to the more explicit non-NSE code (written here without the pipe &lt;code&gt;%&amp;gt;%&lt;/code&gt;):&lt;/p&gt;
+&lt;div class="sourceCode"&gt;&lt;pre class="sourceCode r"&gt;&lt;code class="sourceCode r"&gt;&lt;span class="kw"&gt;filter&lt;/span&gt;(airlines, !&lt;span class="kw"&gt;is.na&lt;/span&gt;(airlines$dep_delay))&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;What is really nice about NSE is that you can refer to new data frame columns that appear during a set of composed operations. For example, the step &lt;code&gt;arrange(desc(delay))&lt;/code&gt; refers to &lt;code&gt;delay&lt;/code&gt; which appeared during the aggregation &lt;code&gt;summarise(delay = mean(dep_delay))&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;The sad thing about NSE is that it's &lt;em&gt;very&lt;/em&gt; unpythonic. It goes directly against a core tenet: &amp;quot;Explicit is better than implicit.&amp;quot; It also can make debugging more difficult with complex expressions involving many NSE variables and functions.&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;Doing NSE in Python actually &lt;em&gt;is&lt;/em&gt; possible, but it won't make you very many friends. I wrote a &lt;a href="http://wesmckinney.com/blog/python-r-and-the-allure-of-magic/"&gt;blog post about it&lt;/a&gt; several years ago.&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;In the above example, the lack of NSE doesn't hurt us very much:&lt;/p&gt;
+&lt;/div&gt;
+&lt;div class="cell border-box-sizing code_cell vbox"&gt;
+&lt;div class="input hbox"&gt;
+&lt;div class="prompt input_prompt"&gt;
+In&amp;nbsp;[1]:
+&lt;/div&gt;
+&lt;div class="input_area box-flex1"&gt;
+&lt;div class="highlight-ipynb"&gt;&lt;pre class="ipynb"&gt;&lt;span class="kn"&gt;import&lt;/span&gt; &lt;span class="nn"&gt;ibis&lt;/span&gt;
+&lt;span class="n"&gt;ibis&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;options&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;interactive&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="bp"&gt;True&lt;/span&gt;
+&lt;span class="n"&gt;con&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;ibis&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;make_client&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;ibis&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;impala&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;connect&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;&amp;#39;bottou01.sjc.cloudera.com&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;))&lt;/span&gt;
+
+&lt;span class="n"&gt;t&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;con&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;table&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;&amp;#39;wes.airlines_parquet&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+
+&lt;span class="n"&gt;expr&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;t&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="n"&gt;t&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;depdelay&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;notnull&lt;/span&gt;&lt;span class="p"&gt;()]&lt;/span&gt;
+        &lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;group_by&lt;/span&gt;&lt;span class="p"&gt;([&lt;/span&gt;&lt;span class="s"&gt;&amp;#39;year&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s"&gt;&amp;#39;month&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s"&gt;&amp;#39;day&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;])&lt;/span&gt;
+        &lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;aggregate&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;t&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;depdelay&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;mean&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;name&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;&amp;#39;delay&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;))&lt;/span&gt;
+        &lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;sort_by&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;ibis&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;desc&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;&amp;#39;delay&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;))&lt;/span&gt;
+        &lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;limit&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="mi"&gt;5&lt;/span&gt;&lt;span class="p"&gt;))&lt;/span&gt;
+&lt;span class="n"&gt;expr&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;div class="vbox output_wrapper"&gt;
+&lt;div class="output vbox"&gt;
+
+
+&lt;div class="hbox output_area"&gt;&lt;div class="prompt output_prompt"&gt;
+    Out[1]:&lt;/div&gt;
+&lt;div class="box-flex1 output_subarea output_pyout"&gt;
+
+
+&lt;pre&gt;
+   year  month  day      delay
+0  2001      9   13  75.139792
+1  2001      9   14  47.194577
+2  1990     12   21  45.661782
+3  1990     12   22  45.222249
+4  1990     12   28  43.914432
+&lt;/pre&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;div class="text_cell_render border-box-sizing rendered_html"&gt;
+&lt;p&gt;Okay, so we're able to do the same thing using strings to reference columns, but let's take a more complex example where this will fail us and require writing down local variables. The trouble comes from needing to form some non-trivial expression during a set of composed operations:&lt;/p&gt;
+&lt;/div&gt;
+&lt;div class="cell border-box-sizing code_cell vbox"&gt;
+&lt;div class="input hbox"&gt;
+&lt;div class="prompt input_prompt"&gt;
+In&amp;nbsp;[2]:
+&lt;/div&gt;
+&lt;div class="input_area box-flex1"&gt;
+&lt;div class="highlight-ipynb"&gt;&lt;pre class="ipynb"&gt;&lt;span class="n"&gt;expr&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;t&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="n"&gt;t&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;depdelay&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;notnull&lt;/span&gt;&lt;span class="p"&gt;()]&lt;/span&gt;
+        &lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;mutate&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;leg&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="n"&gt;ibis&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;literal&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;&amp;#39;-&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;join&lt;/span&gt;&lt;span class="p"&gt;([&lt;/span&gt;&lt;span class="n"&gt;t&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;origin&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;t&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;dest&lt;/span&gt;&lt;span class="p"&gt;]))&lt;/span&gt;
+        &lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="s"&gt;&amp;#39;year&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s"&gt;&amp;#39;month&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s"&gt;&amp;#39;day&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s"&gt;&amp;#39;depdelay&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s"&gt;&amp;#39;leg&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;])&lt;/span&gt;
+&lt;span class="n"&gt;expr&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;limit&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="mi"&gt;10&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;div class="vbox output_wrapper"&gt;
+&lt;div class="output vbox"&gt;
+
+
+&lt;div class="hbox output_area"&gt;&lt;div class="prompt output_prompt"&gt;
+    Out[2]:&lt;/div&gt;
+&lt;div class="box-flex1 output_subarea output_pyout"&gt;
+
+
+&lt;pre&gt;
+   year  month  day  depdelay      leg
+0  1999     12   22        -1  SDF-CVG
+1  1999     12   23         2  SDF-CVG
+2  1999     12   24         3  SDF-CVG
+3  1999     12   25         0  SDF-CVG
+4  1999     12   26         3  SDF-CVG
+5  1999     12   27         2  SDF-CVG
+6  1999     12   28         0  SDF-CVG
+7  1999     12   29        -4  SDF-CVG
+8  1999     12   30        -8  SDF-CVG
+9  1999     12   31        -2  SDF-CVG
+&lt;/pre&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;div class="text_cell_render border-box-sizing rendered_html"&gt;
+&lt;p&gt;Suppose now we wanted to only look at a few legs of interest, like &lt;code&gt;SFO-JFK&lt;/code&gt; and &lt;code&gt;SFO-EWR&lt;/code&gt;:&lt;/p&gt;
+&lt;/div&gt;
+&lt;div class="cell border-box-sizing code_cell vbox"&gt;
+&lt;div class="input hbox"&gt;
+&lt;div class="prompt input_prompt"&gt;
+In&amp;nbsp;[3]:
+&lt;/div&gt;
+&lt;div class="input_area box-flex1"&gt;
+&lt;div class="highlight-ipynb"&gt;&lt;pre class="ipynb"&gt;&lt;span class="n"&gt;expr&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="n"&gt;expr&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;leg&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;isin&lt;/span&gt;&lt;span class="p"&gt;([&lt;/span&gt;&lt;span class="s"&gt;&amp;#39;SFO-JFK&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s"&gt;&amp;#39;SFO-EWR&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;])]&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;limit&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="mi"&gt;10&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;div class="vbox output_wrapper"&gt;
+&lt;div class="output vbox"&gt;
+
+
+&lt;div class="hbox output_area"&gt;&lt;div class="prompt output_prompt"&gt;
+    Out[3]:&lt;/div&gt;
+&lt;div class="box-flex1 output_subarea output_pyout"&gt;
+
+
+&lt;pre&gt;
+   year  month  day  depdelay      leg
+0  1995     12    1         0  SFO-JFK
+1  1995     12    2        37  SFO-JFK
+2  1995     12    3         1  SFO-JFK
+3  1995     12    4         4  SFO-JFK
+4  1995     12    5         0  SFO-JFK
+5  1995     12    6         1  SFO-JFK
+6  1995     12    7         0  SFO-JFK
+7  1995     12    8         3  SFO-JFK
+8  1995     12   10         2  SFO-JFK
+9  1995     12   11        31  SFO-JFK
+&lt;/pre&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;div class="text_cell_render border-box-sizing rendered_html"&gt;
+&lt;p&gt;Hmm.&lt;/p&gt;
+&lt;/div&gt;
+&lt;div class="text_cell_render border-box-sizing rendered_html"&gt;
+&lt;h1 id="late-binding-using-functions"&gt;&amp;quot;Late&amp;quot; binding using functions&lt;/h1&gt;
+&lt;/div&gt;
+&lt;div class="text_cell_render border-box-sizing rendered_html"&gt;
+&lt;p&gt;One Pythonic solution to the composability conundrum is to pass functions as parameters. This simulates NSE's &amp;quot;late binding&amp;quot; semantics in a way that doesn't break any rules about standard Python best practices.&lt;/p&gt;
+&lt;/div&gt;
+&lt;div class="cell border-box-sizing code_cell vbox"&gt;
+&lt;div class="input hbox"&gt;
+&lt;div class="prompt input_prompt"&gt;
+In&amp;nbsp;[4]:
+&lt;/div&gt;
+&lt;div class="input_area box-flex1"&gt;
+&lt;div class="highlight-ipynb"&gt;&lt;pre class="ipynb"&gt;&lt;span class="n"&gt;expr&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;t&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="n"&gt;t&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;depdelay&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;notnull&lt;/span&gt;&lt;span class="p"&gt;()]&lt;/span&gt;
+        &lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;mutate&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;leg&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="n"&gt;ibis&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;literal&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;&amp;#39;-&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;join&lt;/span&gt;&lt;span class="p"&gt;([&lt;/span&gt;&lt;span class="n"&gt;t&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;origin&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;t&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;dest&lt;/span&gt;&lt;span class="p"&gt;]))&lt;/span&gt;
+        &lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;filter&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="k"&gt;lambda&lt;/span&gt; &lt;span class="n"&gt;x&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="n"&gt;x&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;leg&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;isin&lt;/span&gt;&lt;span class="p"&gt;([&lt;/span&gt;&lt;span class="s"&gt;&amp;#39;SFO-JFK&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s"&gt;&amp;#39;SFO-EWR&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;]))&lt;/span&gt;
+        &lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;group_by&lt;/span&gt;&lt;span class="p"&gt;([&lt;/span&gt;&lt;span class="s"&gt;&amp;#39;year&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s"&gt;&amp;#39;month&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s"&gt;&amp;#39;leg&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;])&lt;/span&gt;
+        &lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;aggregate&lt;/span&gt;&lt;span class="p"&gt;([&lt;/span&gt;&lt;span class="k"&gt;lambda&lt;/span&gt; &lt;span class="n"&gt;x&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="n"&gt;x&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;depdelay&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;mean&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;name&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;&amp;#39;avg_delay&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;),&lt;/span&gt;
+                    &lt;span class="k"&gt;lambda&lt;/span&gt; &lt;span class="n"&gt;x&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="n"&gt;x&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;count&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;name&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;&amp;#39;# flights&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;)])&lt;/span&gt;
+        &lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;sort_by&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;ibis&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;desc&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;&amp;#39;avg_delay&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;))&lt;/span&gt;
+        &lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;limit&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="mi"&gt;10&lt;/span&gt;&lt;span class="p"&gt;))&lt;/span&gt;
+&lt;span class="n"&gt;expr&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;div class="vbox output_wrapper"&gt;
+&lt;div class="output vbox"&gt;
+
+
+&lt;div class="hbox output_area"&gt;&lt;div class="prompt output_prompt"&gt;
+    Out[4]:&lt;/div&gt;
+&lt;div class="box-flex1 output_subarea output_pyout"&gt;
+
+
+&lt;pre&gt;
+   year  month      leg  avg_delay  # flights
+0  2008     12  SFO-EWR  37.526316        247
+1  1987     12  SFO-EWR  34.297030        101
+2  2008      6  SFO-EWR  31.103203        281
+3  2008      1  SFO-EWR  29.906780        236
+4  2008      6  SFO-JFK  29.676998        613
+5  1988      1  SFO-EWR  28.398058        103
+6  2008      3  SFO-EWR  24.672269        238
+7  2000      5  SFO-EWR  23.857923        366
+8  2008      7  SFO-JFK  23.512821        624
+9  1989      3  SFO-EWR  23.114035        114
+&lt;/pre&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;div class="text_cell_render border-box-sizing rendered_html"&gt;
+&lt;p&gt;It's a bit of a mouthful with those extra &lt;code&gt;lambda&lt;/code&gt;'s, but it's also kind of nice! Note that Ibis doesn't force you to write one long set of composed operations (feel free to write down as many local variables saving intermediate expressions as you like), but it's nice to have the option! (Also, remind me to avoid Newark airport.)&lt;/p&gt;
+&lt;p&gt;For the curious, here's the SQL that's generated by this expression:&lt;/p&gt;
+&lt;div class="sourceCode"&gt;&lt;pre class="sourceCode sql"&gt;&lt;code class="sourceCode sql"&gt;&lt;span class="kw"&gt;SELECT&lt;/span&gt; t0.`year`, t0.`month`, t0.`leg`, &lt;span class="fu"&gt;avg&lt;/span&gt;(t0.`depdelay`) &lt;span class="kw"&gt;AS&lt;/span&gt; `avg_delay`,
+       &lt;span class="fu"&gt;count&lt;/span&gt;(*) &lt;span class="kw"&gt;AS&lt;/span&gt; `# flights`
+&lt;span class="kw"&gt;FROM&lt;/span&gt; (
+  &lt;span class="kw"&gt;SELECT&lt;/span&gt; *, concat_ws(&lt;span class="st"&gt;&amp;#39;-&amp;#39;&lt;/span&gt;, `origin`, `dest`) &lt;span class="kw"&gt;AS&lt;/span&gt; `leg`
+  &lt;span class="kw"&gt;FROM&lt;/span&gt; wes.airlines_parquet
+  &lt;span class="kw"&gt;WHERE&lt;/span&gt; `depdelay` &lt;span class="kw"&gt;IS&lt;/span&gt; &lt;span class="kw"&gt;NOT&lt;/span&gt; &lt;span class="kw"&gt;NULL&lt;/span&gt;
+) t0
+&lt;span class="kw"&gt;WHERE&lt;/span&gt; t0.`leg` &lt;span class="kw"&gt;IN&lt;/span&gt; (&lt;span class="st"&gt;&amp;#39;SFO-JFK&amp;#39;&lt;/span&gt;, &lt;span class="st"&gt;&amp;#39;SFO-EWR&amp;#39;&lt;/span&gt;)
+&lt;span class="kw"&gt;GROUP&lt;/span&gt; &lt;span class="kw"&gt;BY&lt;/span&gt; &lt;span class="dv"&gt;1&lt;/span&gt;, &lt;span class="dv"&gt;2&lt;/span&gt;, &lt;span class="dv"&gt;3&lt;/span&gt;
+&lt;span class="kw"&gt;ORDER&lt;/span&gt; &lt;span class="kw"&gt;BY&lt;/span&gt; `avg_delay` &lt;span class="kw"&gt;DESC&lt;/span&gt;
+&lt;span class="kw"&gt;LIMIT&lt;/span&gt; &lt;span class="dv"&gt;10&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;/div&gt;
+&lt;div class="text_cell_render border-box-sizing rendered_html"&gt;
+&lt;h1 id="the-pipe-method"&gt;The &lt;code&gt;pipe&lt;/code&gt; method&lt;/h1&gt;
+&lt;p&gt;Another tool to aid composability is the &lt;code&gt;pipe&lt;/code&gt; table method, which was also added to pandas in version 0.16.2. Basically, &lt;code&gt;pipe&lt;/code&gt; makes the statement&lt;/p&gt;
+&lt;div class="sourceCode"&gt;&lt;pre class="sourceCode python"&gt;&lt;code class="sourceCode python"&gt;table.pipe(f, &lt;span class="op"&gt;**&lt;/span&gt;f_kwargs).pipe(g, &lt;span class="op"&gt;**&lt;/span&gt;g_kwargs)&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;equivalent to&lt;/p&gt;
+&lt;div class="sourceCode"&gt;&lt;pre class="sourceCode python"&gt;&lt;code class="sourceCode python"&gt;g(f(table, &lt;span class="op"&gt;**&lt;/span&gt;f_kwargs), &lt;span class="op"&gt;**&lt;/span&gt;g_kwargs)&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;In R, you could write:&lt;/p&gt;
+&lt;div class="sourceCode"&gt;&lt;pre class="sourceCode r"&gt;&lt;code class="sourceCode r"&gt;table %&amp;gt;%&lt;span class="st"&gt; &lt;/span&gt;&lt;span class="kw"&gt;f&lt;/span&gt;(...) %&amp;gt;%&lt;span class="st"&gt; &lt;/span&gt;&lt;span class="kw"&gt;g&lt;/span&gt;(...)&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;So in Ibis, you could write little helper functions that deal in common table idioms for your application. Let me give you an example that removes any rows containing nulls amongst an input set of columns:&lt;/p&gt;
+&lt;/div&gt;
+&lt;div class="cell border-box-sizing code_cell vbox"&gt;
+&lt;div class="input hbox"&gt;
+&lt;div class="prompt input_prompt"&gt;
+In&amp;nbsp;[5]:
+&lt;/div&gt;
+&lt;div class="input_area box-flex1"&gt;
+&lt;div class="highlight-ipynb"&gt;&lt;pre class="ipynb"&gt;&lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;remove_nulls_in&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="o"&gt;*&lt;/span&gt;&lt;span class="n"&gt;cols&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
+    &lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;f&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;table&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
+        &lt;span class="n"&gt;cond&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="bp"&gt;None&lt;/span&gt;
+        &lt;span class="k"&gt;for&lt;/span&gt; &lt;span class="n"&gt;c&lt;/span&gt; &lt;span class="ow"&gt;in&lt;/span&gt; &lt;span class="n"&gt;cols&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;
+            &lt;span class="n"&gt;mask&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;table&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="n"&gt;c&lt;/span&gt;&lt;span class="p"&gt;]&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;notnull&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;
+            &lt;span class="n"&gt;cond&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;mask&lt;/span&gt; &lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="n"&gt;cond&lt;/span&gt; &lt;span class="ow"&gt;is&lt;/span&gt; &lt;span class="bp"&gt;None&lt;/span&gt; &lt;span class="k"&gt;else&lt;/span&gt; &lt;span class="n"&gt;cond&lt;/span&gt; &lt;span class="o"&gt;&amp;amp;&lt;/span&gt; &lt;span class="n"&gt;mask&lt;/span&gt;
+        &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="n"&gt;cond&lt;/span&gt;
+    &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="n"&gt;f&lt;/span&gt;
+
+&lt;span class="n"&gt;filtered&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;t&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;pipe&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;remove_nulls_in&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;&amp;#39;depdelay&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s"&gt;&amp;#39;arrdelay&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;))&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;div class="text_cell_render border-box-sizing rendered_html"&gt;
+&lt;p&gt;Using these tools, you can augment the built-in Ibis DSL constructs to suit your needs, implementing analytics faster with less code.&lt;/p&gt;
+&lt;/div&gt;&lt;/p&gt;</summary></entry><entry><title>Leveraging SQL window functions in Ibis</title><link href="http://blog.ibis-project.org/sql-window-functions/" rel="alternate"></link><updated>2015-08-17T08:00:00-07:00</updated><author><name>Wes McKinney</name></author><id>tag:blog.ibis-project.org,2015-08-17:sql-window-functions/</id><summary type="html">&lt;p&gt;
 &lt;div class="text_cell_render border-box-sizing rendered_html"&gt;
 
 &lt;p&gt;&lt;em&gt;Window&lt;/em&gt; (also known as &lt;em&gt;analytic&lt;/em&gt;) functions are a valuable technique in analytic SQL, but unfortunately they are generally considered to be an &lt;em&gt;advanced&lt;/em&gt; skill among SQL programmers. Conceptually, they are relatively simple, and indeed many everyday pandas and R operations can be expressed in SQL through their use. Mechanically, they can be difficult to use, largely because of the SQL syntax.&lt;/p&gt;

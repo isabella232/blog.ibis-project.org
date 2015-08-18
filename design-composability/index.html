@@ -4,7 +4,7 @@
 <!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
 <head>
   <meta charset="utf-8">
-  <title>Ibis Project Blog</title>
+  <title>Ibis expressions: Pythonic composability and evaluation &mdash; Ibis Project Blog</title>
   <meta name="author" content="Cloudera, Inc.">
 
   <link href="/atom.xml" type="application/atom+xml" rel="alternate"
@@ -1751,6 +1751,8 @@ jQuery(document).ready(function($) {
 
 
 
+
+
   <!-- http://t.co/dKP3o1e -->
   <meta name="HandheldFriendly" content="True">
   <meta name="MobileOptimized" content="320">
@@ -1787,117 +1789,307 @@ jQuery(document).ready(function($) {
 </ul></nav>
   <div id="main">
     <div id="content">
-<div class="blog-index">
-  		<article>
+<div>
+  <article class="hentry" role="article">
 <header>
-      <h1 class="entry-title">
-        <a href="http://blog.ibis-project.org/design-composability/">Ibis expressions: Pythonic composability and evaluation</a>
-      </h1>
+      <h1 class="entry-title">Ibis expressions: Pythonic composability and evaluation</h1>
     <p class="meta">
 <time datetime="2015-08-18T08:00:00-07:00" pubdate>Tue 18 August 2015</time>    </p>
 </header>
 
-  <div class="entry-content">
+  <div class="entry-content"><p>
+<div class="text_cell_render border-box-sizing rendered_html">
+
 <p>The R community, especially my friend <a href="http://twitter.com/hadleywickham">Hadley Wickham</a>, has done pioneering work in creating expressive and useful domain-specific languages (DSLs) embedded in the R programming language. This articles gives some technical detail on composability and evaluation semantics in R and related work in Ibis to solve the same kinds of problems in a Pythonic way.</p>
+
+<h1 id="non-standard-evaluation-in-dplyr">Non-standard evaluation in dplyr</h1>
+<p>In Hadley's book <em>Advanced R</em>, he gives <a href="http://adv-r.had.co.nz/Computing-on-the-language.html">an extensive look</a> at a tool available to R programmers called <em>non-standard evaluation</em> (NSE). Users of <code>ggplot2</code> or <code>dplyr</code> (or other Hadleyverse packages) will be familiar with this — it is also used in base R for model formulas.</p>
+<blockquote>
+<p>NB. For the programming language junkies, NSE originates from the homoiconic Lisp tradition of &quot;code as data&quot;. The R language implementation <em>is</em> at its core a kind of Lisp interpreter!</p>
+</blockquote>
+<p>Let's take an example from one of the dplyr vignettes on everyone's favorite <a href="http://blog.ibis-project.org/pages/data.html">airlines dataset</a>.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">airlines %&gt;%
+<span class="st">  </span><span class="kw">filter</span>(!<span class="kw">is.na</span>(dep_delay)) %&gt;%
+<span class="st">  </span><span class="kw">group_by</span>(year, month, day) %&gt;%
+<span class="st">  </span><span class="kw">summarise</span>(<span class="dt">delay =</span> <span class="kw">mean</span>(dep_delay)) %&gt;%
+<span class="st">  </span><span class="kw">arrange</span>(<span class="kw">desc</span>(delay)) %&gt;%
+<span class="st">  </span><span class="kw">head</span>(<span class="dv">5</span>)</code></pre></div>
+<p>As a Python programmer, you might ask &quot;what in tarnation is going on here?&quot;. Indeed, very few of the symbols in this code block are valid variables in the local scope. The short story is that the code (or <em>data</em> would be more accurate) inside the function calls is evaluated in the context of the &quot;calling&quot; data frame. So the NSE code</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">airlines %&gt;%<span class="st"> </span>
+<span class="st">  </span><span class="kw">filter</span>(!<span class="kw">is.na</span>(dep_delay))</code></pre></div>
+<p>Is equivalent to the more explicit non-NSE code (written here without the pipe <code>%&gt;%</code>):</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">filter</span>(airlines, !<span class="kw">is.na</span>(airlines$dep_delay))</code></pre></div>
+<p>What is really nice about NSE is that you can refer to new data frame columns that appear during a set of composed operations. For example, the step <code>arrange(desc(delay))</code> refers to <code>delay</code> which appeared during the aggregation <code>summarise(delay = mean(dep_delay))</code>.</p>
+<p>The sad thing about NSE is that it's <em>very</em> unpythonic. It goes directly against a core tenet: &quot;Explicit is better than implicit.&quot; It also can make debugging more difficult with complex expressions involving many NSE variables and functions.</p>
+<blockquote>
+<p>Doing NSE in Python actually <em>is</em> possible, but it won't make you very many friends. I wrote a <a href="http://wesmckinney.com/blog/python-r-and-the-allure-of-magic/">blog post about it</a> several years ago.</p>
+</blockquote>
+<p>In the above example, the lack of NSE doesn't hurt us very much:</p>
 </div>
-  <footer>
-    <a rel="full-article" href="http://blog.ibis-project.org/design-composability/">Read On &crarr;</a>
-  </footer>
-  		</article>
-  		<article>
-<header>
-      <h1 class="entry-title">
-        <a href="http://blog.ibis-project.org/sql-window-functions/">Leveraging SQL window functions in Ibis</a>
-      </h1>
-    <p class="meta">
-<time datetime="2015-08-17T08:00:00-07:00" pubdate>Mon 17 August 2015</time>    </p>
-</header>
-
-  <div class="entry-content">
-<p><em>Window</em> (also known as <em>analytic</em>) functions are a valuable technique in analytic SQL, but unfortunately they are generally considered to be an <em>advanced</em> skill among SQL programmers. Conceptually, they are relatively simple, and indeed many everyday pandas and R operations can be expressed in SQL through their use. Mechanically, they can be difficult to use, largely because of the SQL syntax.</p>
-<p>Ibis has had comprehensive support for window functions from 0.3 onward, and I invested quite a bit of effort to design an API to make them available to users in a much simpler way. I also made sure that you don't have to be a SQL expert to use them. </div>
-  <footer>
-    <a rel="full-article" href="http://blog.ibis-project.org/sql-window-functions/">Read On &crarr;</a>
-  </footer>
-  		</article>
-  		<article>
-<header>
-      <h1 class="entry-title">
-        <a href="http://blog.ibis-project.org/release-0.4/">Ibis 0.4.0 release</a>
-      </h1>
-    <p class="meta">
-<time datetime="2015-08-14T09:30:00-07:00" pubdate>Fri 14 August 2015</time>    </p>
-</header>
-
-  <div class="entry-content">
-
-<p>The next Ibis release is out, check out the detailed <a href="http://docs.ibis-project.org/release.html">release notes</a>.</p>
+<div class="cell border-box-sizing code_cell vbox">
+<div class="input hbox">
+<div class="prompt input_prompt">
+In&nbsp;[1]:
 </div>
-  <footer>
-    <a rel="full-article" href="http://blog.ibis-project.org/release-0.4/">Read On &crarr;</a>
-  </footer>
-  		</article>
-  		<article>
-<header>
-      <h1 class="entry-title">
-        <a href="http://blog.ibis-project.org/design-modeling-analytics-1/">Ibis Design: Modeling high level analytics tasks</a>
-      </h1>
-    <p class="meta">
-<time datetime="2015-08-10T08:00:00-07:00" pubdate>Mon 10 August 2015</time>    </p>
-</header>
+<div class="input_area box-flex1">
+<div class="highlight-ipynb"><pre class="ipynb"><span class="kn">import</span> <span class="nn">ibis</span>
+<span class="n">ibis</span><span class="o">.</span><span class="n">options</span><span class="o">.</span><span class="n">interactive</span> <span class="o">=</span> <span class="bp">True</span>
+<span class="n">con</span> <span class="o">=</span> <span class="n">ibis</span><span class="o">.</span><span class="n">make_client</span><span class="p">(</span><span class="n">ibis</span><span class="o">.</span><span class="n">impala</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="s">&#39;bottou01.sjc.cloudera.com&#39;</span><span class="p">))</span>
 
-  <div class="entry-content">
-<p>Outside of scalability and high performance on large data sets with Python, Ibis is focused on simplifying analytics tasks for end users. By designing a rich pandas-like domain specific language (DSL) embedded in Python code, we can hide away the complexities normally associated with expressing analytical concepts in SQL or some other tool. This post gives some specific examples and shows how we're solving them in Ibis. </div>
-  <footer>
-    <a rel="full-article" href="http://blog.ibis-project.org/design-modeling-analytics-1/">Read On &crarr;</a>
-  </footer>
-  		</article>
-  		<article>
-<header>
-      <h1 class="entry-title">
-        <a href="http://blog.ibis-project.org/other-compute-engines/">Using other compute engines with Ibis</a>
-      </h1>
-    <p class="meta">
-<time datetime="2015-08-02T22:22:00-07:00" pubdate>Sun 02 August 2015</time>    </p>
-</header>
+<span class="n">t</span> <span class="o">=</span> <span class="n">con</span><span class="o">.</span><span class="n">table</span><span class="p">(</span><span class="s">&#39;wes.airlines_parquet&#39;</span><span class="p">)</span>
 
-  <div class="entry-content">
+<span class="n">expr</span> <span class="o">=</span> <span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">depdelay</span><span class="o">.</span><span class="n">notnull</span><span class="p">()]</span>
+        <span class="o">.</span><span class="n">group_by</span><span class="p">([</span><span class="s">&#39;year&#39;</span><span class="p">,</span> <span class="s">&#39;month&#39;</span><span class="p">,</span> <span class="s">&#39;day&#39;</span><span class="p">])</span>
+        <span class="o">.</span><span class="n">aggregate</span><span class="p">(</span><span class="n">t</span><span class="o">.</span><span class="n">depdelay</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span><span class="o">.</span><span class="n">name</span><span class="p">(</span><span class="s">&#39;delay&#39;</span><span class="p">))</span>
+        <span class="o">.</span><span class="n">sort_by</span><span class="p">(</span><span class="n">ibis</span><span class="o">.</span><span class="n">desc</span><span class="p">(</span><span class="s">&#39;delay&#39;</span><span class="p">))</span>
+        <span class="o">.</span><span class="n">limit</span><span class="p">(</span><span class="mi">5</span><span class="p">))</span>
+<span class="n">expr</span>
+</pre></div>
 
-<p>Several people have asked me about using Ibis with execution engines other than
-Impala. The purpose of this post is to explain how one can make Ibis work with
-other systems and what that might mean for the actual users.</p>
 </div>
-  <footer>
-    <a rel="full-article" href="http://blog.ibis-project.org/other-compute-engines/">Read On &crarr;</a>
-  </footer>
-  		</article>
-  		<article>
-<header>
-      <h1 class="entry-title">
-        <a href="http://blog.ibis-project.org/hello-world/">Hello World</a>
-      </h1>
-    <p class="meta">
-<time datetime="2015-07-23T19:41:00-07:00" pubdate>Thu 23 July 2015</time>    </p>
-</header>
-
-  <div class="entry-content">
-
-<p>Welcome to the Ibis project blog. As the project develops we'll post here
-periodically with:</p>
-<ul>
-<li>Applications and use cases</li>
-<li>Development updates and release notes</li>
-<li>Details on project internals and design</li>
-<li>Updates from Impala development and the broader community</li>
-<li>Thought pieces on the Big Data and Python ecosystems</li>
-</ul>
-<p>I'm looking forward to the journey; it's going to be really exciting.</p>
 </div>
-  		</article>
-<div class="pagination">
 
-  <br />
-</div></div>
+<div class="vbox output_wrapper">
+<div class="output vbox">
+
+
+<div class="hbox output_area"><div class="prompt output_prompt">
+    Out[1]:</div>
+<div class="box-flex1 output_subarea output_pyout">
+
+
+<pre>
+   year  month  day      delay
+0  2001      9   13  75.139792
+1  2001      9   14  47.194577
+2  1990     12   21  45.661782
+3  1990     12   22  45.222249
+4  1990     12   28  43.914432
+</pre>
+
+</div>
+</div>
+
+</div>
+</div>
+
+</div>
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>Okay, so we're able to do the same thing using strings to reference columns, but let's take a more complex example where this will fail us and require writing down local variables. The trouble comes from needing to form some non-trivial expression during a set of composed operations:</p>
+</div>
+<div class="cell border-box-sizing code_cell vbox">
+<div class="input hbox">
+<div class="prompt input_prompt">
+In&nbsp;[2]:
+</div>
+<div class="input_area box-flex1">
+<div class="highlight-ipynb"><pre class="ipynb"><span class="n">expr</span> <span class="o">=</span> <span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">depdelay</span><span class="o">.</span><span class="n">notnull</span><span class="p">()]</span>
+        <span class="o">.</span><span class="n">mutate</span><span class="p">(</span><span class="n">leg</span><span class="o">=</span><span class="n">ibis</span><span class="o">.</span><span class="n">literal</span><span class="p">(</span><span class="s">&#39;-&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="n">t</span><span class="o">.</span><span class="n">origin</span><span class="p">,</span> <span class="n">t</span><span class="o">.</span><span class="n">dest</span><span class="p">]))</span>
+        <span class="p">[</span><span class="s">&#39;year&#39;</span><span class="p">,</span> <span class="s">&#39;month&#39;</span><span class="p">,</span> <span class="s">&#39;day&#39;</span><span class="p">,</span> <span class="s">&#39;depdelay&#39;</span><span class="p">,</span> <span class="s">&#39;leg&#39;</span><span class="p">])</span>
+<span class="n">expr</span><span class="o">.</span><span class="n">limit</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span>
+</pre></div>
+
+</div>
+</div>
+
+<div class="vbox output_wrapper">
+<div class="output vbox">
+
+
+<div class="hbox output_area"><div class="prompt output_prompt">
+    Out[2]:</div>
+<div class="box-flex1 output_subarea output_pyout">
+
+
+<pre>
+   year  month  day  depdelay      leg
+0  1999     12   22        -1  SDF-CVG
+1  1999     12   23         2  SDF-CVG
+2  1999     12   24         3  SDF-CVG
+3  1999     12   25         0  SDF-CVG
+4  1999     12   26         3  SDF-CVG
+5  1999     12   27         2  SDF-CVG
+6  1999     12   28         0  SDF-CVG
+7  1999     12   29        -4  SDF-CVG
+8  1999     12   30        -8  SDF-CVG
+9  1999     12   31        -2  SDF-CVG
+</pre>
+
+</div>
+</div>
+
+</div>
+</div>
+
+</div>
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>Suppose now we wanted to only look at a few legs of interest, like <code>SFO-JFK</code> and <code>SFO-EWR</code>:</p>
+</div>
+<div class="cell border-box-sizing code_cell vbox">
+<div class="input hbox">
+<div class="prompt input_prompt">
+In&nbsp;[3]:
+</div>
+<div class="input_area box-flex1">
+<div class="highlight-ipynb"><pre class="ipynb"><span class="n">expr</span><span class="p">[</span><span class="n">expr</span><span class="o">.</span><span class="n">leg</span><span class="o">.</span><span class="n">isin</span><span class="p">([</span><span class="s">&#39;SFO-JFK&#39;</span><span class="p">,</span> <span class="s">&#39;SFO-EWR&#39;</span><span class="p">])]</span><span class="o">.</span><span class="n">limit</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span>
+</pre></div>
+
+</div>
+</div>
+
+<div class="vbox output_wrapper">
+<div class="output vbox">
+
+
+<div class="hbox output_area"><div class="prompt output_prompt">
+    Out[3]:</div>
+<div class="box-flex1 output_subarea output_pyout">
+
+
+<pre>
+   year  month  day  depdelay      leg
+0  1995     12    1         0  SFO-JFK
+1  1995     12    2        37  SFO-JFK
+2  1995     12    3         1  SFO-JFK
+3  1995     12    4         4  SFO-JFK
+4  1995     12    5         0  SFO-JFK
+5  1995     12    6         1  SFO-JFK
+6  1995     12    7         0  SFO-JFK
+7  1995     12    8         3  SFO-JFK
+8  1995     12   10         2  SFO-JFK
+9  1995     12   11        31  SFO-JFK
+</pre>
+
+</div>
+</div>
+
+</div>
+</div>
+
+</div>
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>Hmm.</p>
+</div>
+<div class="text_cell_render border-box-sizing rendered_html">
+<h1 id="late-binding-using-functions">&quot;Late&quot; binding using functions</h1>
+</div>
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>One Pythonic solution to the composability conundrum is to pass functions as parameters. This simulates NSE's &quot;late binding&quot; semantics in a way that doesn't break any rules about standard Python best practices.</p>
+</div>
+<div class="cell border-box-sizing code_cell vbox">
+<div class="input hbox">
+<div class="prompt input_prompt">
+In&nbsp;[4]:
+</div>
+<div class="input_area box-flex1">
+<div class="highlight-ipynb"><pre class="ipynb"><span class="n">expr</span> <span class="o">=</span> <span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">depdelay</span><span class="o">.</span><span class="n">notnull</span><span class="p">()]</span>
+        <span class="o">.</span><span class="n">mutate</span><span class="p">(</span><span class="n">leg</span><span class="o">=</span><span class="n">ibis</span><span class="o">.</span><span class="n">literal</span><span class="p">(</span><span class="s">&#39;-&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="n">t</span><span class="o">.</span><span class="n">origin</span><span class="p">,</span> <span class="n">t</span><span class="o">.</span><span class="n">dest</span><span class="p">]))</span>
+        <span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">leg</span><span class="o">.</span><span class="n">isin</span><span class="p">([</span><span class="s">&#39;SFO-JFK&#39;</span><span class="p">,</span> <span class="s">&#39;SFO-EWR&#39;</span><span class="p">]))</span>
+        <span class="o">.</span><span class="n">group_by</span><span class="p">([</span><span class="s">&#39;year&#39;</span><span class="p">,</span> <span class="s">&#39;month&#39;</span><span class="p">,</span> <span class="s">&#39;leg&#39;</span><span class="p">])</span>
+        <span class="o">.</span><span class="n">aggregate</span><span class="p">([</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">depdelay</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span><span class="o">.</span><span class="n">name</span><span class="p">(</span><span class="s">&#39;avg_delay&#39;</span><span class="p">),</span>
+                    <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">count</span><span class="p">()</span><span class="o">.</span><span class="n">name</span><span class="p">(</span><span class="s">&#39;# flights&#39;</span><span class="p">)])</span>
+        <span class="o">.</span><span class="n">sort_by</span><span class="p">(</span><span class="n">ibis</span><span class="o">.</span><span class="n">desc</span><span class="p">(</span><span class="s">&#39;avg_delay&#39;</span><span class="p">))</span>
+        <span class="o">.</span><span class="n">limit</span><span class="p">(</span><span class="mi">10</span><span class="p">))</span>
+<span class="n">expr</span>
+</pre></div>
+
+</div>
+</div>
+
+<div class="vbox output_wrapper">
+<div class="output vbox">
+
+
+<div class="hbox output_area"><div class="prompt output_prompt">
+    Out[4]:</div>
+<div class="box-flex1 output_subarea output_pyout">
+
+
+<pre>
+   year  month      leg  avg_delay  # flights
+0  2008     12  SFO-EWR  37.526316        247
+1  1987     12  SFO-EWR  34.297030        101
+2  2008      6  SFO-EWR  31.103203        281
+3  2008      1  SFO-EWR  29.906780        236
+4  2008      6  SFO-JFK  29.676998        613
+5  1988      1  SFO-EWR  28.398058        103
+6  2008      3  SFO-EWR  24.672269        238
+7  2000      5  SFO-EWR  23.857923        366
+8  2008      7  SFO-JFK  23.512821        624
+9  1989      3  SFO-EWR  23.114035        114
+</pre>
+
+</div>
+</div>
+
+</div>
+</div>
+
+</div>
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>It's a bit of a mouthful with those extra <code>lambda</code>'s, but it's also kind of nice! Note that Ibis doesn't force you to write one long set of composed operations (feel free to write down as many local variables saving intermediate expressions as you like), but it's nice to have the option! (Also, remind me to avoid Newark airport.)</p>
+<p>For the curious, here's the SQL that's generated by this expression:</p>
+<div class="sourceCode"><pre class="sourceCode sql"><code class="sourceCode sql"><span class="kw">SELECT</span> t0.`year`, t0.`month`, t0.`leg`, <span class="fu">avg</span>(t0.`depdelay`) <span class="kw">AS</span> `avg_delay`,
+       <span class="fu">count</span>(*) <span class="kw">AS</span> `# flights`
+<span class="kw">FROM</span> (
+  <span class="kw">SELECT</span> *, concat_ws(<span class="st">&#39;-&#39;</span>, `origin`, `dest`) <span class="kw">AS</span> `leg`
+  <span class="kw">FROM</span> wes.airlines_parquet
+  <span class="kw">WHERE</span> `depdelay` <span class="kw">IS</span> <span class="kw">NOT</span> <span class="kw">NULL</span>
+) t0
+<span class="kw">WHERE</span> t0.`leg` <span class="kw">IN</span> (<span class="st">&#39;SFO-JFK&#39;</span>, <span class="st">&#39;SFO-EWR&#39;</span>)
+<span class="kw">GROUP</span> <span class="kw">BY</span> <span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">3</span>
+<span class="kw">ORDER</span> <span class="kw">BY</span> `avg_delay` <span class="kw">DESC</span>
+<span class="kw">LIMIT</span> <span class="dv">10</span></code></pre></div>
+</div>
+<div class="text_cell_render border-box-sizing rendered_html">
+<h1 id="the-pipe-method">The <code>pipe</code> method</h1>
+<p>Another tool to aid composability is the <code>pipe</code> table method, which was also added to pandas in version 0.16.2. Basically, <code>pipe</code> makes the statement</p>
+<div class="sourceCode"><pre class="sourceCode python"><code class="sourceCode python">table.pipe(f, <span class="op">**</span>f_kwargs).pipe(g, <span class="op">**</span>g_kwargs)</code></pre></div>
+<p>equivalent to</p>
+<div class="sourceCode"><pre class="sourceCode python"><code class="sourceCode python">g(f(table, <span class="op">**</span>f_kwargs), <span class="op">**</span>g_kwargs)</code></pre></div>
+<p>In R, you could write:</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">table %&gt;%<span class="st"> </span><span class="kw">f</span>(...) %&gt;%<span class="st"> </span><span class="kw">g</span>(...)</code></pre></div>
+<p>So in Ibis, you could write little helper functions that deal in common table idioms for your application. Let me give you an example that removes any rows containing nulls amongst an input set of columns:</p>
+</div>
+<div class="cell border-box-sizing code_cell vbox">
+<div class="input hbox">
+<div class="prompt input_prompt">
+In&nbsp;[5]:
+</div>
+<div class="input_area box-flex1">
+<div class="highlight-ipynb"><pre class="ipynb"><span class="k">def</span> <span class="nf">remove_nulls_in</span><span class="p">(</span><span class="o">*</span><span class="n">cols</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">f</span><span class="p">(</span><span class="n">table</span><span class="p">):</span>
+        <span class="n">cond</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">cols</span><span class="p">:</span>
+            <span class="n">mask</span> <span class="o">=</span> <span class="n">table</span><span class="p">[</span><span class="n">c</span><span class="p">]</span><span class="o">.</span><span class="n">notnull</span><span class="p">()</span>
+            <span class="n">cond</span> <span class="o">=</span> <span class="n">mask</span> <span class="k">if</span> <span class="n">cond</span> <span class="ow">is</span> <span class="bp">None</span> <span class="k">else</span> <span class="n">cond</span> <span class="o">&amp;</span> <span class="n">mask</span>
+        <span class="k">return</span> <span class="n">cond</span>
+    <span class="k">return</span> <span class="n">f</span>
+
+<span class="n">filtered</span> <span class="o">=</span> <span class="n">t</span><span class="o">.</span><span class="n">pipe</span><span class="p">(</span><span class="n">remove_nulls_in</span><span class="p">(</span><span class="s">&#39;depdelay&#39;</span><span class="p">,</span> <span class="s">&#39;arrdelay&#39;</span><span class="p">))</span>
+</pre></div>
+
+</div>
+</div>
+
+</div>
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>Using these tools, you can augment the built-in Ibis DSL constructs to suit your needs, implementing analytics faster with less code.</p>
+</div></p></div>
+    <footer>
+<p class="meta">
+  <span class="byline author vcard">
+    Posted by <span class="fn">
+        <a href="http://blog.ibis-project.org/author/wes-mckinney.html">Wes McKinney</a>
+    </span>
+  </span>
+<time datetime="2015-08-18T08:00:00-07:00" pubdate>Tue 18 August 2015</time>
+</p><div class="sharing">
+  <a href="http://twitter.com/share" class="twitter-share-button" data-url="http://blog.ibis-project.org/design-composability/" data-via="wesmckinn" data-counturl="http://blog.ibis-project.org/design-composability/" >Tweet</a>
+</div>    </footer>
+  </article>
+
+</div>
 <aside class="sidebar">
   <section>
     <h1>Recent Posts</h1>

@@ -1773,7 +1773,7 @@ jQuery(document).ready(function($) {
 <body>
   <header role="banner"><hgroup>
   <h1><a href="http://blog.ibis-project.org/">Ibis Project Blog</a></h1>
-    <h2>Better Big Data with Python, powered by Impala. Development updates, use cases, and internals.</h2>
+    <h2>Python analysis framework for SQL engines and Hadoop, with high performance extensions for Impala. Development updates, use cases, and internals.</h2>
 </hgroup></header>
   <nav role="navigation"><ul class="subscription" data-subscription="rss">
   <li><a href="/atom.xml" rel="subscribe-atom">Atom</a></li>
@@ -1851,7 +1851,7 @@ In&nbsp;[1]:
 <div class="highlight-ipynb"><pre class="ipynb"><span class="kn">import</span> <span class="nn">ibis</span>
 <span class="n">ibis</span><span class="o">.</span><span class="n">options</span><span class="o">.</span><span class="n">interactive</span> <span class="o">=</span> <span class="bp">True</span>
 
-<span class="n">con</span> <span class="o">=</span> <span class="n">ibis</span><span class="o">.</span><span class="n">make_client</span><span class="p">(</span><span class="n">ibis</span><span class="o">.</span><span class="n">impala</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="s">&#39;bottou01.sjc.cloudera.com&#39;</span><span class="p">))</span>
+<span class="n">con</span> <span class="o">=</span> <span class="n">ibis</span><span class="o">.</span><span class="n">impala</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="s">&#39;bottou01.sjc.cloudera.com&#39;</span><span class="p">)</span>
 
 <span class="n">db</span> <span class="o">=</span> <span class="n">con</span><span class="o">.</span><span class="n">database</span><span class="p">(</span><span class="s">&#39;wes&#39;</span><span class="p">)</span>
 <span class="n">table</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">airlines_parquet</span>
@@ -2478,6 +2478,12 @@ True
     <h1>Recent Posts</h1>
     <ul id="recent_posts">
       <li class="post">
+          <a href="http://blog.ibis-project.org/sqlite-crunchbase-quickstart/">Quickstart on Crunchbase analysis using Ibis and SQLite</a>
+      </li>
+      <li class="post">
+          <a href="http://blog.ibis-project.org/release-0.5/">Ibis 0.5: SQLite, Python 3, and more</a>
+      </li>
+      <li class="post">
           <a href="http://blog.ibis-project.org/design-composability/">Ibis expressions: Pythonic composability and evaluation</a>
       </li>
       <li class="post">
@@ -2485,12 +2491,6 @@ True
       </li>
       <li class="post">
           <a href="http://blog.ibis-project.org/release-0.4/">Ibis 0.4.0 release</a>
-      </li>
-      <li class="post">
-          <a href="http://blog.ibis-project.org/design-modeling-analytics-1/">Ibis Design: Modeling high level analytics tasks</a>
-      </li>
-      <li class="post">
-          <a href="http://blog.ibis-project.org/other-compute-engines/">Using other compute engines with Ibis</a>
       </li>
     </ul>
   </section>

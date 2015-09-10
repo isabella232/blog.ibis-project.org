@@ -1771,7 +1771,7 @@ jQuery(document).ready(function($) {
 <body>
   <header role="banner"><hgroup>
   <h1><a href="http://blog.ibis-project.org/">Ibis Project Blog</a></h1>
-    <h2>Better Big Data with Python, powered by Impala. Development updates, use cases, and internals.</h2>
+    <h2>Python analysis framework for SQL engines and Hadoop, with high performance extensions for Impala. Development updates, use cases, and internals.</h2>
 </hgroup></header>
   <nav role="navigation"><ul class="subscription" data-subscription="rss">
   <li><a href="/atom.xml" rel="subscribe-atom">Atom</a></li>
@@ -1795,24 +1795,70 @@ jQuery(document).ready(function($) {
     <h2>Catalog</h2>
 <ul>
 <li><a href="#airlines">Airlines</a></li>
+<li><a href="#crunchbase">Crunchbase</a></li>
 <li><a href="#nyctaxi">NYC Taxi Trips and Fares</a></li>
-<li><a href="#fec2012">2012 US Election Donations</a></li>
+<li><a href="#sfcrime">SF Crimes</a></li>
+<li><a href="#reddit-comments">Reddit Comments</a></li>
+<li><a href="#fec2012">2012 FEC (US Election Donations)</a></li>
+<li><a href="#nyc311">NYC 311 Data</a></li>
 </ul>
 <hr />
 <h3><a name="airlines"></a>Airlines Dataset</h3>
 <p>Airline on-time performance dataset from October 1987 through April 2008,
-prepared for the 2009 ASA Data Expo.</p>
+prepared for the <a href="http://stat-computing.org/dataexpo/2009/">2009 ASA Data Expo</a>.</p>
 <ul>
 <li><strong>Size</strong>: 121MM rows, 29 columns</li>
-<li><strong>Parquet format</strong> (1.16 GB): <a href="https://www.dropbox.com/s/20ycbvhqsy2uaqv/airlines_parquet.tar.gz?dl=0">download</a></li>
+<li><strong>License</strong>: Unknown</li>
+<li><strong>Parquet</strong>: <a href="https://ibis-resources.s3.amazonaws.com/data/airlines/airlines_parquet.tar.gz">airlines_parquet.tar.gz (1.24 GB)</a></li>
 </ul>
-<p><a href="http://stat-computing.org/dataexpo/2009/">Source</a></p>
+<p>Articles using this dataset</p>
+<ul>
+<li><a href="http://blog.ibis-project.org/design-composability/">Ibis expressions: Pythonic composability and evaluation</a></li>
+<li><a href="http://blog.ibis-project.org/sql-window-functions/">Leveraging SQL window functions in Ibis</a></li>
+<li><a href="http://blog.ibis-project.org/design-modeling-analytics-1/">Ibis Design: Modeling high level analytics tasks</a></li>
+</ul>
+<hr />
+<h3><a name="crunchbase"></a>Crunchbase Dataset</h3>
+<p>Extracted from the Crunchbase Excel export. Includes companies, acquisitions,
+funding rounds, and investments.</p>
+<p><strong>Last updated: February, 2015</strong></p>
+<p>License: <a href="http://creativecommons.org/licenses/by-nc/4.0/">CC-BY-NC</a></p>
+<ul>
+<li><strong>SQLite</strong>: <a href="https://ibis-resources.s3.amazonaws.com/data/crunchbase/crunchbase.db">crunchbase.db (77 MB)</a></li>
+<li><strong>Parquet</strong>: forthcoming</li>
+</ul>
+<p>Articles using this dataset</p>
+<ul>
+<li><a href="http://blog.ibis-project.org/sqlite-crunchbase-quickstart/">Crunchbase SQLite Quickstart</a></li>
+</ul>
 <hr />
 <h3><a name="nyctaxi"></a>NYC Taxi Trips and Fares</h3>
 <p>Forthcoming</p>
+<p>Articles using this dataset</p>
+<p>*</p>
 <hr />
 <h3><a name="fec2012"></a>2012 US FEC Presidental Donations</h3>
 <p>Forthcoming</p>
+<p>Articles using this dataset</p>
+<p>*</p>
+<hr />
+<h3><a name="sfcrime"></a>SF Crimes</h3>
+<p><strong>Last updated:</strong></p>
+<p>Forthcoming</p>
+<p>Articles using this dataset</p>
+<p>*</p>
+<hr />
+<h3><a name="reddit-comments"></a>Reddit Comments</h3>
+<p><strong>Last updated:</strong></p>
+<p>Forthcoming</p>
+<p>Articles using this dataset</p>
+<p>*</p>
+<hr />
+<h3><a name="nyc311"></a>NYC 311 Data</h3>
+<p><strong>Last updated:</strong></p>
+<p>Forthcoming</p>
+<p>Articles using this dataset</p>
+<p>*</p>
 <hr />
   </article>
 </div>
@@ -1821,6 +1867,12 @@ prepared for the 2009 ASA Data Expo.</p>
     <h1>Recent Posts</h1>
     <ul id="recent_posts">
       <li class="post">
+          <a href="http://blog.ibis-project.org/sqlite-crunchbase-quickstart/">Quickstart on Crunchbase analysis using Ibis and SQLite</a>
+      </li>
+      <li class="post">
+          <a href="http://blog.ibis-project.org/release-0.5/">Ibis 0.5: SQLite, Python 3, and more</a>
+      </li>
+      <li class="post">
           <a href="http://blog.ibis-project.org/design-composability/">Ibis expressions: Pythonic composability and evaluation</a>
       </li>
       <li class="post">
@@ -1828,12 +1880,6 @@ prepared for the 2009 ASA Data Expo.</p>
       </li>
       <li class="post">
           <a href="http://blog.ibis-project.org/release-0.4/">Ibis 0.4.0 release</a>
-      </li>
-      <li class="post">
-          <a href="http://blog.ibis-project.org/design-modeling-analytics-1/">Ibis Design: Modeling high level analytics tasks</a>
-      </li>
-      <li class="post">
-          <a href="http://blog.ibis-project.org/other-compute-engines/">Using other compute engines with Ibis</a>
       </li>
     </ul>
   </section>

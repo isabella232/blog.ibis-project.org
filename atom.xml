@@ -1444,7 +1444,7 @@ short term. If you would like to get involved please get in touch.&lt;/p&gt;
 &lt;li&gt;Support for Impala complex (nested) types&lt;/li&gt;
 &lt;li&gt;Tools for more complex ETL workflows on Impala&lt;/li&gt;
 &lt;/ul&gt;
-&lt;p&gt;See the &lt;a href="https://github.com/cloudera/ibis/issues{:target=&amp;quot;_blank&amp;quot;}" target="_blank"&gt;GitHub issue tracker&lt;/a&gt; for the granular feature
+&lt;p&gt;See the &lt;a href="https://github.com/cloudera/ibis/issues" target="_blank"&gt;GitHub issue tracker&lt;/a&gt; for the granular feature
 roadmap.&lt;/p&gt;</summary></entry><entry><title>Ibis expressions: Pythonic composability and evaluation</title><link href="http://blog.ibis-project.org/design-composability/" rel="alternate"></link><updated>2015-08-18T08:00:00-07:00</updated><author><name>Wes McKinney</name></author><id>tag:blog.ibis-project.org,2015-08-18:design-composability/</id><summary type="html">&lt;p&gt;
 &lt;div class="text_cell_render border-box-sizing rendered_html"&gt;
 

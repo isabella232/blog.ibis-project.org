@@ -10,7 +10,7 @@ don't have to install or administer a database at all.&lt;/p&gt;
 &lt;/pre&gt;&lt;/div&gt;
 
 
-&lt;p&gt;And download the &lt;a href="https://ibis-resources.s3.amazonaws.com/data/crunchbase/crunchbase.db"&gt;Crunchbase dataset&lt;/a&gt; found on the &lt;a href="http://localhost:8900/pages/data.html" target="_blank"&gt;data collection page&lt;/a&gt;.&lt;/p&gt;
+&lt;p&gt;And download the &lt;a href="https://ibis-resources.s3.amazonaws.com/data/crunchbase/crunchbase.db"&gt;Crunchbase dataset&lt;/a&gt; found on the &lt;a href="http://blog.ibis-project.org/pages/data.html" target="_blank"&gt;data collection page&lt;/a&gt;.&lt;/p&gt;
 &lt;p&gt;Now fire up a IPython / Jupyter notebook or shell and let's get started!&lt;/p&gt;
 
 

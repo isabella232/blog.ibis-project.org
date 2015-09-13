@@ -2310,7 +2310,7 @@ In&nbsp;[14]:
 <div class="highlight-ipynb"><pre class="ipynb"><span class="n">expr</span> <span class="o">=</span> <span class="p">(</span><span class="n">t</span>             <span class="c"># DatabaseTable -&gt; TableExpr</span>
         <span class="o">.</span><span class="n">limit</span><span class="p">(</span><span class="mi">20</span><span class="p">)</span>    <span class="c"># Limit         -&gt; TableExpr</span>
         <span class="o">.</span><span class="n">tinyint_col</span>  <span class="c"># TableColumn   -&gt; Int8Array</span>
-        <span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span>      <span class="c"># Add           -&gt; Int8Array</span>
+        <span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span>      <span class="c"># Add           -&gt; Int16Array</span>
         <span class="o">.</span><span class="n">sqrt</span><span class="p">()</span>       <span class="c"># Sqrt          -&gt; DoubleArray</span>
         <span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>     <span class="c"># Round         -&gt; DoubleArray</span>
         <span class="o">.</span><span class="n">sum</span><span class="p">())</span>       <span class="c"># Sum           -&gt; DoubleScalar</span>

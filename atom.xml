@@ -1,5 +1,1843 @@
 <?xml version="1.0" encoding="utf-8"?>
-<feed xmlns="http://www.w3.org/2005/Atom"><title>Ibis Project Blog</title><link href="http://blog.ibis-project.org/" rel="alternate"></link><link href="/atom.xml" rel="self"></link><id>http://blog.ibis-project.org/</id><updated>2015-09-09T08:01:00-07:00</updated><entry><title>Quickstart on Crunchbase analysis using Ibis and SQLite</title><link href="http://blog.ibis-project.org/sqlite-crunchbase-quickstart/" rel="alternate"></link><updated>2015-09-09T08:01:00-07:00</updated><author><name>Wes McKinney</name></author><id>tag:blog.ibis-project.org,2015-09-09:sqlite-crunchbase-quickstart/</id><summary type="html">
+<feed xmlns="http://www.w3.org/2005/Atom"><title>Ibis Project Blog</title><link href="http://blog.ibis-project.org/" rel="alternate"></link><link href="/atom.xml" rel="self"></link><id>http://blog.ibis-project.org/</id><updated>2015-09-13T10:00:00-07:00</updated><entry><title>Ibis Design: Expression types and operation mechanics</title><link href="http://blog.ibis-project.org/design-types-operations/" rel="alternate"></link><updated>2015-09-13T10:00:00-07:00</updated><author><name>Wes McKinney</name></author><id>tag:blog.ibis-project.org,2015-09-13:design-types-operations/</id><summary type="html">&lt;p&gt;
+&lt;div class="text_cell_render border-box-sizing rendered_html"&gt;
+
+&lt;p&gt;This blog post describes Ibis's expression type system and how its DSL (domain-specific language) operations work. It's intended for curious users or developers of the project.&lt;/p&gt;
+&lt;p&gt;I spent a lot of time thinking about how to create a deferred expression DSL that compiles to SQL and is fluid and intuitive to use. No small task.&lt;/p&gt;
+&lt;p&gt;The key things I want to address are:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;Ibis's internal operation types and external user-facing types&lt;/li&gt;
+&lt;li&gt;How the DSL semantics help you avoid making common mistakes&lt;/li&gt;
+&lt;li&gt;How type checking and evaluation works&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;At the end, since several people have asked me about it, I show some contrasts in Ibis's API design with &lt;a href="http://blaze.pydata.org/"&gt;Blaze&lt;/a&gt;, another Python project, that has its own embedded DSL.&lt;/p&gt;
+
+&lt;h2 id="ibis-expression-basics"&gt;Ibis expression basics&lt;/h2&gt;
+&lt;p&gt;In general, all objects in Ibis semantically referencing real data fall into 3 categories:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;Tables: Database tables, data in formats like Parquet and Avro, or derived table expressions&lt;/li&gt;
+&lt;li&gt;Arrays: Columns in tables or derived expressions thereof&lt;/li&gt;
+&lt;li&gt;Scalars: Literal values and results of aggregations or analytic functions&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;I'll give you a bunch of basic examples of these and then give more technical detail on the type system.&lt;/p&gt;
+&lt;p&gt;Let's just take the number 5:&lt;/p&gt;
+&lt;/div&gt;
+&lt;div class="cell border-box-sizing code_cell vbox"&gt;
+&lt;div class="input hbox"&gt;
+&lt;div class="prompt input_prompt"&gt;
+In&amp;nbsp;[1]:
+&lt;/div&gt;
+&lt;div class="input_area box-flex1"&gt;
+&lt;div class="highlight-ipynb"&gt;&lt;pre class="ipynb"&gt;&lt;span class="kn"&gt;import&lt;/span&gt; &lt;span class="nn"&gt;ibis&lt;/span&gt;
+
+&lt;span class="n"&gt;value&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="mi"&gt;5&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;div class="text_cell_render border-box-sizing rendered_html"&gt;
+&lt;p&gt;Suppose you wanted to create an expression that uses this value. Ibis has the function &lt;code&gt;literal&lt;/code&gt; that converts a Python scalar value to a well-typed expression. Most of the time this happens automatically, but let's do it explicitly:&lt;/p&gt;
+&lt;/div&gt;
+&lt;div class="cell border-box-sizing code_cell vbox"&gt;
+&lt;div class="input hbox"&gt;
+&lt;div class="prompt input_prompt"&gt;
+In&amp;nbsp;[2]:
+&lt;/div&gt;
+&lt;div class="input_area box-flex1"&gt;
+&lt;div class="highlight-ipynb"&gt;&lt;pre class="ipynb"&gt;&lt;span class="n"&gt;int_expr&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;ibis&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;literal&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="mi"&gt;5&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;span class="n"&gt;int_expr&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;div class="vbox output_wrapper"&gt;
+&lt;div class="output vbox"&gt;
+
+
+&lt;div class="hbox output_area"&gt;&lt;div class="prompt output_prompt"&gt;
+    Out[2]:&lt;/div&gt;
+&lt;div class="box-flex1 output_subarea output_pyout"&gt;
+
+
+&lt;pre&gt;
+Literal[int8]
+  5
+&lt;/pre&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;div class="text_cell_render border-box-sizing rendered_html"&gt;
+&lt;p&gt;This code didn't actually &lt;em&gt;do&lt;/em&gt; anything. It created a &lt;em&gt;literal expression&lt;/em&gt; containing the value 5. What you see in brackets is the output type of the operation &lt;code&gt;Literal&lt;/code&gt;. What is &lt;code&gt;int_expr&lt;/code&gt;, then?&lt;/p&gt;
+&lt;/div&gt;
+&lt;div class="cell border-box-sizing code_cell vbox"&gt;
+&lt;div class="input hbox"&gt;
+&lt;div class="prompt input_prompt"&gt;
+In&amp;nbsp;[3]:
+&lt;/div&gt;
+&lt;div class="input_area box-flex1"&gt;
+&lt;div class="highlight-ipynb"&gt;&lt;pre class="ipynb"&gt;&lt;span class="nb"&gt;type&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;int_expr&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;div class="vbox output_wrapper"&gt;
+&lt;div class="output vbox"&gt;
+
+
+&lt;div class="hbox output_area"&gt;&lt;div class="prompt output_prompt"&gt;
+    Out[3]:&lt;/div&gt;
+&lt;div class="box-flex1 output_subarea output_pyout"&gt;
+
+
+&lt;pre&gt;
+ibis.expr.types.Int8Scalar
+&lt;/pre&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;div class="text_cell_render border-box-sizing rendered_html"&gt;
+&lt;p&gt;Okay, let's figure out this &lt;code&gt;int_expr&lt;/code&gt; thing.&lt;/p&gt;
+&lt;/div&gt;
+&lt;div class="cell border-box-sizing code_cell vbox"&gt;
+&lt;div class="input hbox"&gt;
+&lt;div class="prompt input_prompt"&gt;
+In&amp;nbsp;[4]:
+&lt;/div&gt;
+&lt;div class="input_area box-flex1"&gt;
+&lt;div class="highlight-ipynb"&gt;&lt;pre class="ipynb"&gt;&lt;span class="n"&gt;int_expr&lt;/span&gt; &lt;span class="o"&gt;+&lt;/span&gt; &lt;span class="mi"&gt;10&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;div class="vbox output_wrapper"&gt;
+&lt;div class="output vbox"&gt;
+
+
+&lt;div class="hbox output_area"&gt;&lt;div class="prompt output_prompt"&gt;
+    Out[4]:&lt;/div&gt;
+&lt;div class="box-flex1 output_subarea output_pyout"&gt;
+
+
+&lt;pre&gt;
+Add[int8]
+  Literal[int8]
+    5
+  Literal[int8]
+    10
+&lt;/pre&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;div class="cell border-box-sizing code_cell vbox"&gt;
+&lt;div class="input hbox"&gt;
+&lt;div class="prompt input_prompt"&gt;
+In&amp;nbsp;[5]:
+&lt;/div&gt;
+&lt;div class="input_area box-flex1"&gt;
+&lt;div class="highlight-ipynb"&gt;&lt;pre class="ipynb"&gt;&lt;span class="nb"&gt;type&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;int_expr&lt;/span&gt; &lt;span class="o"&gt;+&lt;/span&gt; &lt;span class="mi"&gt;10&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;div class="vbox output_wrapper"&gt;
+&lt;div class="output vbox"&gt;
+
+
+&lt;div class="hbox output_area"&gt;&lt;div class="prompt output_prompt"&gt;
+    Out[5]:&lt;/div&gt;
+&lt;div class="box-flex1 output_subarea output_pyout"&gt;
+
+
+&lt;pre&gt;
+ibis.expr.types.Int8Scalar
+&lt;/pre&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;div class="cell border-box-sizing code_cell vbox"&gt;
+&lt;div class="input hbox"&gt;
+&lt;div class="prompt input_prompt"&gt;
+In&amp;nbsp;[6]:
+&lt;/div&gt;
+&lt;div class="input_area box-flex1"&gt;
+&lt;div class="highlight-ipynb"&gt;&lt;pre class="ipynb"&gt;&lt;span class="n"&gt;expr&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;int_expr&lt;/span&gt; &lt;span class="o"&gt;+&lt;/span&gt; &lt;span class="mi"&gt;10&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;sqrt&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;
+&lt;span class="n"&gt;expr&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;div class="vbox output_wrapper"&gt;
+&lt;div class="output vbox"&gt;
+
+
+&lt;div class="hbox output_area"&gt;&lt;div class="prompt output_prompt"&gt;
+    Out[6]:&lt;/div&gt;
+&lt;div class="box-flex1 output_subarea output_pyout"&gt;
+
+
+&lt;pre&gt;
+Sqrt[double]
+  Add[int8]
+    Literal[int8]
+      5
+    Literal[int8]
+      10
+&lt;/pre&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;div class="text_cell_render border-box-sizing rendered_html"&gt;
+&lt;p&gt;Read the expression tree inside out. So &lt;code&gt;10&lt;/code&gt; got automatically converted to a literal, then they're &lt;code&gt;Add&lt;/code&gt;-ed together, finally &lt;code&gt;Sqrt&lt;/code&gt; is applied. Note that:&lt;/p&gt;
+&lt;/div&gt;
+&lt;div class="cell border-box-sizing code_cell vbox"&gt;
+&lt;div class="input hbox"&gt;
+&lt;div class="prompt input_prompt"&gt;
+In&amp;nbsp;[7]:
+&lt;/div&gt;
+&lt;div class="input_area box-flex1"&gt;
+&lt;div class="highlight-ipynb"&gt;&lt;pre class="ipynb"&gt;&lt;span class="nb"&gt;type&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;expr&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;div class="vbox output_wrapper"&gt;
+&lt;div class="output vbox"&gt;
+
+
+&lt;div class="hbox output_area"&gt;&lt;div class="prompt output_prompt"&gt;
+    Out[7]:&lt;/div&gt;
+&lt;div class="box-flex1 output_subarea output_pyout"&gt;
+
+
+&lt;pre&gt;
+ibis.expr.types.DoubleScalar
+&lt;/pre&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;div class="text_cell_render border-box-sizing rendered_html"&gt;
+&lt;p&gt;Let's round it to 2 decimal places for good measure:&lt;/p&gt;
+&lt;/div&gt;
+&lt;div class="cell border-box-sizing code_cell vbox"&gt;
+&lt;div class="input hbox"&gt;
+&lt;div class="prompt input_prompt"&gt;
+In&amp;nbsp;[8]:
+&lt;/div&gt;
+&lt;div class="input_area box-flex1"&gt;
+&lt;div class="highlight-ipynb"&gt;&lt;pre class="ipynb"&gt;&lt;span class="n"&gt;rounded&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;expr&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;round&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="mi"&gt;2&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+
+&lt;span class="k"&gt;print&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;&amp;#39;Type is {0!r}&amp;#39;&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;format&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nb"&gt;type&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;rounded&lt;/span&gt;&lt;span class="p"&gt;)))&lt;/span&gt;
+
+&lt;span class="n"&gt;rounded&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;div class="vbox output_wrapper"&gt;
+&lt;div class="output vbox"&gt;
+
+
+&lt;div class="hbox output_area"&gt;&lt;div class="prompt"&gt;&lt;/div&gt;
+&lt;div class="box-flex1 output_subarea output_stream output_stdout"&gt;
+&lt;pre&gt;
+Type is &amp;lt;class &amp;apos;ibis.expr.types.DoubleScalar&amp;apos;&amp;gt;
+
+&lt;/pre&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;div class="hbox output_area"&gt;&lt;div class="prompt output_prompt"&gt;
+    Out[8]:&lt;/div&gt;
+&lt;div class="box-flex1 output_subarea output_pyout"&gt;
+
+
+&lt;pre&gt;
+Round[double]
+  Sqrt[double]
+    Add[int8]
+      Literal[int8]
+        5
+      Literal[int8]
+        10
+  Literal[int8]
+    2
+&lt;/pre&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;div class="text_cell_render border-box-sizing rendered_html"&gt;
+&lt;p&gt;Now, if you wanted to run this expression inside Impala, it would get translated to this SQL:&lt;/p&gt;
+&lt;/div&gt;
+&lt;div class="cell border-box-sizing code_cell vbox"&gt;
+&lt;div class="input hbox"&gt;
+&lt;div class="prompt input_prompt"&gt;
+In&amp;nbsp;[9]:
+&lt;/div&gt;
+&lt;div class="input_area box-flex1"&gt;
+&lt;div class="highlight-ipynb"&gt;&lt;pre class="ipynb"&gt;&lt;span class="k"&gt;print&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;ibis&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;impala&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;compile&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;rounded&lt;/span&gt;&lt;span class="p"&gt;))&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;div class="vbox output_wrapper"&gt;
+&lt;div class="output vbox"&gt;
+
+
+&lt;div class="hbox output_area"&gt;&lt;div class="prompt"&gt;&lt;/div&gt;
+&lt;div class="box-flex1 output_subarea output_stream output_stdout"&gt;
+&lt;pre&gt;
+SELECT round(sqrt(5 + 10), 2) AS &amp;#96;tmp&amp;#96;
+
+&lt;/pre&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;div class="text_cell_render border-box-sizing rendered_html"&gt;
+&lt;p&gt;Indeed:&lt;/p&gt;
+&lt;/div&gt;
+&lt;div class="cell border-box-sizing code_cell vbox"&gt;
+&lt;div class="input hbox"&gt;
+&lt;div class="prompt input_prompt"&gt;
+In&amp;nbsp;[10]:
+&lt;/div&gt;
+&lt;div class="input_area box-flex1"&gt;
+&lt;div class="highlight-ipynb"&gt;&lt;pre class="ipynb"&gt;&lt;span class="n"&gt;con&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;ibis&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;impala&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;connect&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;&amp;#39;bottou01.sjc.cloudera.com&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;span class="n"&gt;con&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;execute&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;rounded&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;div class="vbox output_wrapper"&gt;
+&lt;div class="output vbox"&gt;
+
+
+&lt;div class="hbox output_area"&gt;&lt;div class="prompt output_prompt"&gt;
+    Out[10]:&lt;/div&gt;
+&lt;div class="box-flex1 output_subarea output_pyout"&gt;
+
+
+&lt;pre&gt;
+3.8700000000000001
+&lt;/pre&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;div class="text_cell_render border-box-sizing rendered_html"&gt;
+&lt;p&gt;Let's look at a table now:&lt;/p&gt;
+&lt;/div&gt;
+&lt;div class="cell border-box-sizing code_cell vbox"&gt;
+&lt;div class="input hbox"&gt;
+&lt;div class="prompt input_prompt"&gt;
+In&amp;nbsp;[11]:
+&lt;/div&gt;
+&lt;div class="input_area box-flex1"&gt;
+&lt;div class="highlight-ipynb"&gt;&lt;pre class="ipynb"&gt;&lt;span class="n"&gt;db&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;con&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;database&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;&amp;#39;ibis_testing&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;span class="n"&gt;t&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;db&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;functional_alltypes&lt;/span&gt;
+&lt;span class="n"&gt;t&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;div class="vbox output_wrapper"&gt;
+&lt;div class="output vbox"&gt;
+
+
+&lt;div class="hbox output_area"&gt;&lt;div class="prompt output_prompt"&gt;
+    Out[11]:&lt;/div&gt;
+&lt;div class="box-flex1 output_subarea output_pyout"&gt;
+
+
+&lt;pre&gt;
+DatabaseTable[table]
+  name: ibis_testing.&amp;#96;functional_alltypes&amp;#96;
+  schema:
+    id : int32
+    bool_col : boolean
+    tinyint_col : int8
+    smallint_col : int16
+    int_col : int32
+    bigint_col : int64
+    float_col : float
+    double_col : double
+    date_string_col : string
+    string_col : string
+    timestamp_col : timestamp
+    year : int32
+    month : int32
+&lt;/pre&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;div class="cell border-box-sizing code_cell vbox"&gt;
+&lt;div class="input hbox"&gt;
+&lt;div class="prompt input_prompt"&gt;
+In&amp;nbsp;[12]:
+&lt;/div&gt;
+&lt;div class="input_area box-flex1"&gt;
+&lt;div class="highlight-ipynb"&gt;&lt;pre class="ipynb"&gt;&lt;span class="nb"&gt;type&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;t&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;div class="vbox output_wrapper"&gt;
+&lt;div class="output vbox"&gt;
+
+
+&lt;div class="hbox output_area"&gt;&lt;div class="prompt output_prompt"&gt;
+    Out[12]:&lt;/div&gt;
+&lt;div class="box-flex1 output_subarea output_pyout"&gt;
+
+
+&lt;pre&gt;
+ibis.impala.client.ImpalaTable
+&lt;/pre&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;div class="text_cell_render border-box-sizing rendered_html"&gt;
+&lt;p&gt;This says &lt;code&gt;ImpalaTable&lt;/code&gt;, but it's really &lt;code&gt;TableExpr&lt;/code&gt; with a few extra methods that are Impala-specific. For experienced Pythonistas, you'll know the &lt;code&gt;mro&lt;/code&gt; method gives you the full inheritance hierarchy:&lt;/p&gt;
+&lt;/div&gt;
+&lt;div class="cell border-box-sizing code_cell vbox"&gt;
+&lt;div class="input hbox"&gt;
+&lt;div class="prompt input_prompt"&gt;
+In&amp;nbsp;[13]:
+&lt;/div&gt;
+&lt;div class="input_area box-flex1"&gt;
+&lt;div class="highlight-ipynb"&gt;&lt;pre class="ipynb"&gt;&lt;span class="nb"&gt;type&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;t&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;mro&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;div class="vbox output_wrapper"&gt;
+&lt;div class="output vbox"&gt;
+
+
+&lt;div class="hbox output_area"&gt;&lt;div class="prompt output_prompt"&gt;
+    Out[13]:&lt;/div&gt;
+&lt;div class="box-flex1 output_subarea output_pyout"&gt;
+
+
+&lt;pre&gt;
+[ibis.impala.client.ImpalaTable,
+ ibis.expr.types.TableExpr,
+ ibis.expr.types.Expr,
+ ibis.client.DatabaseEntity,
+ object]
+&lt;/pre&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;div class="text_cell_render border-box-sizing rendered_html"&gt;
+&lt;p&gt;Now let's compute the same expression from above on &lt;code&gt;tinyint_col&lt;/code&gt;, and sum it for kicks. I'll write it with one line per operation and add comments that show the operation name and output type of each operation:&lt;/p&gt;
+&lt;/div&gt;
+&lt;div class="cell border-box-sizing code_cell vbox"&gt;
+&lt;div class="input hbox"&gt;
+&lt;div class="prompt input_prompt"&gt;
+In&amp;nbsp;[14]:
+&lt;/div&gt;
+&lt;div class="input_area box-flex1"&gt;
+&lt;div class="highlight-ipynb"&gt;&lt;pre class="ipynb"&gt;&lt;span class="n"&gt;expr&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;t&lt;/span&gt;             &lt;span class="c"&gt;# DatabaseTable -&amp;gt; TableExpr&lt;/span&gt;
+        &lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;limit&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="mi"&gt;20&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;    &lt;span class="c"&gt;# Limit         -&amp;gt; TableExpr&lt;/span&gt;
+        &lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;tinyint_col&lt;/span&gt;  &lt;span class="c"&gt;# TableColumn   -&amp;gt; Int8Array&lt;/span&gt;
+        &lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;add&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="mi"&gt;10&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;      &lt;span class="c"&gt;# Add           -&amp;gt; Int8Array&lt;/span&gt;
+        &lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;sqrt&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;       &lt;span class="c"&gt;# Sqrt          -&amp;gt; DoubleArray&lt;/span&gt;
+        &lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;round&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="mi"&gt;2&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;     &lt;span class="c"&gt;# Round         -&amp;gt; DoubleArray&lt;/span&gt;
+        &lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;sum&lt;/span&gt;&lt;span class="p"&gt;())&lt;/span&gt;       &lt;span class="c"&gt;# Sum           -&amp;gt; DoubleScalar&lt;/span&gt;
+
+&lt;span class="n"&gt;expr&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;div class="vbox output_wrapper"&gt;
+&lt;div class="output vbox"&gt;
+
+
+&lt;div class="hbox output_area"&gt;&lt;div class="prompt output_prompt"&gt;
+    Out[14]:&lt;/div&gt;
+&lt;div class="box-flex1 output_subarea output_pyout"&gt;
+
+
+&lt;pre&gt;
+ref_0
+DatabaseTable[table]
+  name: ibis_testing.&amp;#96;functional_alltypes&amp;#96;
+  schema:
+    id : int32
+    bool_col : boolean
+    tinyint_col : int8
+    smallint_col : int16
+    int_col : int32
+    bigint_col : int64
+    float_col : float
+    double_col : double
+    date_string_col : string
+    string_col : string
+    timestamp_col : timestamp
+    year : int32
+    month : int32
+
+sum = Sum[double]
+  Round[array(double)]
+    Sqrt[array(double)]
+      Add[array(int16)]
+        tinyint_col = Column[array(int8)] &amp;apos;tinyint_col&amp;apos; from table 
+          Limit[table]
+            Table: ref_0
+            n:
+              20
+            offset:
+              0
+        Literal[int8]
+          10
+    Literal[int8]
+      2
+  None
+&lt;/pre&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;div class="text_cell_render border-box-sizing rendered_html"&gt;
+&lt;p&gt;As desired:&lt;/p&gt;
+&lt;/div&gt;
+&lt;div class="cell border-box-sizing code_cell vbox"&gt;
+&lt;div class="input hbox"&gt;
+&lt;div class="prompt input_prompt"&gt;
+In&amp;nbsp;[15]:
+&lt;/div&gt;
+&lt;div class="input_area box-flex1"&gt;
+&lt;div class="highlight-ipynb"&gt;&lt;pre class="ipynb"&gt;&lt;span class="nb"&gt;type&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;expr&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;div class="vbox output_wrapper"&gt;
+&lt;div class="output vbox"&gt;
+
+
+&lt;div class="hbox output_area"&gt;&lt;div class="prompt output_prompt"&gt;
+    Out[15]:&lt;/div&gt;
+&lt;div class="box-flex1 output_subarea output_pyout"&gt;
+
+
+&lt;pre&gt;
+ibis.expr.types.DoubleScalar
+&lt;/pre&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;div class="text_cell_render border-box-sizing rendered_html"&gt;
+&lt;p&gt;And:&lt;/p&gt;
+&lt;/div&gt;
+&lt;div class="cell border-box-sizing code_cell vbox"&gt;
+&lt;div class="input hbox"&gt;
+&lt;div class="prompt input_prompt"&gt;
+In&amp;nbsp;[16]:
+&lt;/div&gt;
+&lt;div class="input_area box-flex1"&gt;
+&lt;div class="highlight-ipynb"&gt;&lt;pre class="ipynb"&gt;&lt;span class="n"&gt;con&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;execute&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;expr&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;div class="vbox output_wrapper"&gt;
+&lt;div class="output vbox"&gt;
+
+
+&lt;div class="hbox output_area"&gt;&lt;div class="prompt output_prompt"&gt;
+    Out[16]:&lt;/div&gt;
+&lt;div class="box-flex1 output_subarea output_pyout"&gt;
+
+
+&lt;pre&gt;
+75.760000000000005
+&lt;/pre&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;div class="cell border-box-sizing code_cell vbox"&gt;
+&lt;div class="input hbox"&gt;
+&lt;div class="prompt input_prompt"&gt;
+In&amp;nbsp;[17]:
+&lt;/div&gt;
+&lt;div class="input_area box-flex1"&gt;
+&lt;div class="highlight-ipynb"&gt;&lt;pre class="ipynb"&gt;&lt;span class="k"&gt;print&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;expr&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;compile&lt;/span&gt;&lt;span class="p"&gt;())&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;div class="vbox output_wrapper"&gt;
+&lt;div class="output vbox"&gt;
+
+
+&lt;div class="hbox output_area"&gt;&lt;div class="prompt"&gt;&lt;/div&gt;
+&lt;div class="box-flex1 output_subarea output_stream output_stdout"&gt;
+&lt;pre&gt;
+SELECT sum(round(sqrt(&amp;#96;tinyint_col&amp;#96; + 10), 2)) AS &amp;#96;sum&amp;#96;
+FROM (
+  SELECT *
+  FROM ibis_testing.&amp;#96;functional_alltypes&amp;#96;
+  LIMIT 20
+) t0
+
+&lt;/pre&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;div class="text_cell_render border-box-sizing rendered_html"&gt;
+&lt;p&gt;Here's the important thing: &lt;strong&gt;the user never interacts with the actual operations&lt;/strong&gt;. As a user, &lt;strong&gt;all you see are well-typed expressions having a particular value type (scalar, array, or table)&lt;/strong&gt;. This makes your mode of interaction consistent and 100% reliable from step to step.&lt;/p&gt;
+&lt;/div&gt;
+&lt;div class="text_cell_render border-box-sizing rendered_html"&gt;
+&lt;h2 id="how-operations-yield-expressions"&gt;How operations yield expressions&lt;/h2&gt;
+&lt;p&gt;To help understand how the DSL is constructed, let's deconstruct a simple string operation:&lt;/p&gt;
+&lt;/div&gt;
+&lt;div class="cell border-box-sizing code_cell vbox"&gt;
+&lt;div class="input hbox"&gt;
+&lt;div class="prompt input_prompt"&gt;
+In&amp;nbsp;[18]:
+&lt;/div&gt;
+&lt;div class="input_area box-flex1"&gt;
+&lt;div class="highlight-ipynb"&gt;&lt;pre class="ipynb"&gt;&lt;span class="n"&gt;expr&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;ibis&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;literal&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;&amp;#39;wes mckinney&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;span class="nb"&gt;type&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;expr&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;div class="vbox output_wrapper"&gt;
+&lt;div class="output vbox"&gt;
+
+
+&lt;div class="hbox output_area"&gt;&lt;div class="prompt output_prompt"&gt;
+    Out[18]:&lt;/div&gt;
+&lt;div class="box-flex1 output_subarea output_pyout"&gt;
+
+
+&lt;pre&gt;
+ibis.expr.types.StringScalar
+&lt;/pre&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;div class="cell border-box-sizing code_cell vbox"&gt;
+&lt;div class="input hbox"&gt;
+&lt;div class="prompt input_prompt"&gt;
+In&amp;nbsp;[19]:
+&lt;/div&gt;
+&lt;div class="input_area box-flex1"&gt;
+&lt;div class="highlight-ipynb"&gt;&lt;pre class="ipynb"&gt;&lt;span class="n"&gt;chopped&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;expr&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;substr&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="mi"&gt;4&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;span class="n"&gt;chopped&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;div class="vbox output_wrapper"&gt;
+&lt;div class="output vbox"&gt;
+
+
+&lt;div class="hbox output_area"&gt;&lt;div class="prompt output_prompt"&gt;
+    Out[19]:&lt;/div&gt;
+&lt;div class="box-flex1 output_subarea output_pyout"&gt;
+
+
+&lt;pre&gt;
+Substring[string]
+  Literal[string]
+    wes mckinney
+  Literal[int8]
+    4
+  None
+&lt;/pre&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;div class="cell border-box-sizing code_cell vbox"&gt;
+&lt;div class="input hbox"&gt;
+&lt;div class="prompt input_prompt"&gt;
+In&amp;nbsp;[20]:
+&lt;/div&gt;
+&lt;div class="input_area box-flex1"&gt;
+&lt;div class="highlight-ipynb"&gt;&lt;pre class="ipynb"&gt;&lt;span class="n"&gt;chopped&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;execute&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;div class="vbox output_wrapper"&gt;
+&lt;div class="output vbox"&gt;
+
+
+&lt;div class="hbox output_area"&gt;&lt;div class="prompt output_prompt"&gt;
+    Out[20]:&lt;/div&gt;
+&lt;div class="box-flex1 output_subarea output_pyout"&gt;
+
+
+&lt;pre&gt;
+&amp;apos;mckinney&amp;apos;
+&lt;/pre&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;div class="text_cell_render border-box-sizing rendered_html"&gt;
+&lt;p&gt;Here is the implementation of &lt;code&gt;Substring&lt;/code&gt;:&lt;/p&gt;
+&lt;div class="sourceCode"&gt;&lt;pre class="sourceCode python"&gt;&lt;code class="sourceCode python"&gt;&lt;span class="kw"&gt;class&lt;/span&gt; Substring(ValueOp):
+
+    input_type &lt;span class="op"&gt;=&lt;/span&gt; [string, integer(name&lt;span class="op"&gt;=&lt;/span&gt;&lt;span class="st"&gt;&amp;#39;start&amp;#39;&lt;/span&gt;),
+                  integer(name&lt;span class="op"&gt;=&lt;/span&gt;&lt;span class="st"&gt;&amp;#39;length&amp;#39;&lt;/span&gt;, optional&lt;span class="op"&gt;=&lt;/span&gt;&lt;span class="va"&gt;True&lt;/span&gt;)]
+    output_type &lt;span class="op"&gt;=&lt;/span&gt; rules.shape_like_arg(&lt;span class="dv"&gt;0&lt;/span&gt;, &lt;span class="st"&gt;&amp;#39;string&amp;#39;&lt;/span&gt;)&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;What's going on when I call &lt;code&gt;expr.substr(4)&lt;/code&gt; is, in fact:&lt;/p&gt;
+&lt;/div&gt;
+&lt;div class="cell border-box-sizing code_cell vbox"&gt;
+&lt;div class="input hbox"&gt;
+&lt;div class="prompt input_prompt"&gt;
+In&amp;nbsp;[21]:
+&lt;/div&gt;
+&lt;div class="input_area box-flex1"&gt;
+&lt;div class="highlight-ipynb"&gt;&lt;pre class="ipynb"&gt;&lt;span class="kn"&gt;import&lt;/span&gt; &lt;span class="nn"&gt;ibis.expr.operations&lt;/span&gt; &lt;span class="kn"&gt;as&lt;/span&gt; &lt;span class="nn"&gt;ops&lt;/span&gt;
+
+&lt;span class="n"&gt;op&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;ops&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;Substring&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;expr&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="mi"&gt;4&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+
+&lt;span class="nb"&gt;type&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;op&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;div class="vbox output_wrapper"&gt;
+&lt;div class="output vbox"&gt;
+
+
+&lt;div class="hbox output_area"&gt;&lt;div class="prompt output_prompt"&gt;
+    Out[21]:&lt;/div&gt;
+&lt;div class="box-flex1 output_subarea output_pyout"&gt;
+
+
+&lt;pre&gt;
+ibis.expr.operations.Substring
+&lt;/pre&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;div class="text_cell_render border-box-sizing rendered_html"&gt;
+&lt;p&gt;Among other things, this validated that the arguments match the &lt;code&gt;input_type&lt;/code&gt; signature.&lt;/p&gt;
+&lt;p&gt;The user will &lt;em&gt;never&lt;/em&gt; directly interact with this object. All that matters is that its output is another string.&lt;/p&gt;
+&lt;/div&gt;
+&lt;div class="cell border-box-sizing code_cell vbox"&gt;
+&lt;div class="input hbox"&gt;
+&lt;div class="prompt input_prompt"&gt;
+In&amp;nbsp;[22]:
+&lt;/div&gt;
+&lt;div class="input_area box-flex1"&gt;
+&lt;div class="highlight-ipynb"&gt;&lt;pre class="ipynb"&gt;&lt;span class="n"&gt;op&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;output_type&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;div class="vbox output_wrapper"&gt;
+&lt;div class="output vbox"&gt;
+
+
+&lt;div class="hbox output_area"&gt;&lt;div class="prompt output_prompt"&gt;
+    Out[22]:&lt;/div&gt;
+&lt;div class="box-flex1 output_subarea output_pyout"&gt;
+
+
+&lt;pre&gt;
+ibis.expr.types.StringScalar
+&lt;/pre&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;div class="text_cell_render border-box-sizing rendered_html"&gt;
+&lt;p&gt;Internally, Ibis calls the operation instance's &lt;code&gt;to_expr&lt;/code&gt; method which wraps the operation in a &lt;code&gt;StringScalar&lt;/code&gt; expression:&lt;/p&gt;
+&lt;/div&gt;
+&lt;div class="cell border-box-sizing code_cell vbox"&gt;
+&lt;div class="input hbox"&gt;
+&lt;div class="prompt input_prompt"&gt;
+In&amp;nbsp;[23]:
+&lt;/div&gt;
+&lt;div class="input_area box-flex1"&gt;
+&lt;div class="highlight-ipynb"&gt;&lt;pre class="ipynb"&gt;&lt;span class="n"&gt;chopped&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;op&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;to_expr&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;
+&lt;span class="n"&gt;chopped&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;div class="vbox output_wrapper"&gt;
+&lt;div class="output vbox"&gt;
+
+
+&lt;div class="hbox output_area"&gt;&lt;div class="prompt output_prompt"&gt;
+    Out[23]:&lt;/div&gt;
+&lt;div class="box-flex1 output_subarea output_pyout"&gt;
+
+
+&lt;pre&gt;
+Substring[string]
+  Literal[string]
+    wes mckinney
+  Literal[int8]
+    4
+  None
+&lt;/pre&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;div class="text_cell_render border-box-sizing rendered_html"&gt;
+&lt;h2 id="helping-you-avoid-invalid-operations"&gt;Helping you avoid invalid operations&lt;/h2&gt;
+&lt;blockquote&gt;
+&lt;p&gt;&lt;strong&gt;NB.&lt;/strong&gt; This addresses a frequent rough edge I experienced when using NumPy to build pandas; namely that there is a single &lt;code&gt;ndarray&lt;/code&gt; type whose values are only distinguished by the &lt;code&gt;dtype&lt;/code&gt; attribute. pandas is now full of workarounds to provide data type-specific functionality on &lt;code&gt;Series&lt;/code&gt; objects.&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;Ibis tries to save you from forming invalid expressions in two ways:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;All instance methods on an expression are guaranteed to be valid (assuming there is a translation rule for your target SQL engine).&lt;/li&gt;
+&lt;li&gt;Type-checking happens immediately, informing you of any mistakes&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Let's have a closer look at this. I'll use a simplified table (not referencing any real data) to make the output here more compact:&lt;/p&gt;
+&lt;/div&gt;
+&lt;div class="cell border-box-sizing code_cell vbox"&gt;
+&lt;div class="input hbox"&gt;
+&lt;div class="prompt input_prompt"&gt;
+In&amp;nbsp;[24]:
+&lt;/div&gt;
+&lt;div class="input_area box-flex1"&gt;
+&lt;div class="highlight-ipynb"&gt;&lt;pre class="ipynb"&gt;&lt;span class="n"&gt;t2&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;ibis&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;table&lt;/span&gt;&lt;span class="p"&gt;([(&lt;/span&gt;&lt;span class="s"&gt;&amp;#39;v1&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s"&gt;&amp;#39;double&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;),&lt;/span&gt;
+                 &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;&amp;#39;v2&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s"&gt;&amp;#39;int32&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;),&lt;/span&gt;
+                 &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;&amp;#39;v3&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s"&gt;&amp;#39;string&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;)],&lt;/span&gt; &lt;span class="s"&gt;&amp;#39;hamster&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;span class="n"&gt;t2&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;div class="vbox output_wrapper"&gt;
+&lt;div class="output vbox"&gt;
+
+
+&lt;div class="hbox output_area"&gt;&lt;div class="prompt output_prompt"&gt;
+    Out[24]:&lt;/div&gt;
+&lt;div class="box-flex1 output_subarea output_pyout"&gt;
+
+
+&lt;pre&gt;
+UnboundTable[table]
+  name: hamster
+  schema:
+    v1 : double
+    v2 : int32
+    v3 : string
+&lt;/pre&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;div class="text_cell_render border-box-sizing rendered_html"&gt;
+&lt;p&gt;Let's look at the string column &lt;code&gt;v3&lt;/code&gt;:&lt;/p&gt;
+&lt;/div&gt;
+&lt;div class="cell border-box-sizing code_cell vbox"&gt;
+&lt;div class="input hbox"&gt;
+&lt;div class="prompt input_prompt"&gt;
+In&amp;nbsp;[25]:
+&lt;/div&gt;
+&lt;div class="input_area box-flex1"&gt;
+&lt;div class="highlight-ipynb"&gt;&lt;pre class="ipynb"&gt;&lt;span class="n"&gt;t2&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;v3&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;div class="vbox output_wrapper"&gt;
+&lt;div class="output vbox"&gt;
+
+
+&lt;div class="hbox output_area"&gt;&lt;div class="prompt output_prompt"&gt;
+    Out[25]:&lt;/div&gt;
+&lt;div class="box-flex1 output_subarea output_pyout"&gt;
+
+
+&lt;pre&gt;
+ref_0
+UnboundTable[table]
+  name: hamster
+  schema:
+    v1 : double
+    v2 : int32
+    v3 : string
+
+v3 = Column[array(string)] &amp;apos;v3&amp;apos; from table ref_0
+&lt;/pre&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;div class="text_cell_render border-box-sizing rendered_html"&gt;
+&lt;p&gt;The numeric methods we used above are not even available on v3:&lt;/p&gt;
+&lt;/div&gt;
+&lt;div class="cell border-box-sizing code_cell vbox"&gt;
+&lt;div class="input hbox"&gt;
+&lt;div class="prompt input_prompt"&gt;
+In&amp;nbsp;[26]:
+&lt;/div&gt;
+&lt;div class="input_area box-flex1"&gt;
+&lt;div class="highlight-ipynb"&gt;&lt;pre class="ipynb"&gt;&lt;span class="n"&gt;t2&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;v3&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;sum&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;div class="vbox output_wrapper"&gt;
+&lt;div class="output vbox"&gt;
+
+
+&lt;div class="hbox output_area"&gt;&lt;div class="prompt"&gt;&lt;/div&gt;
+&lt;div class="box-flex1 output_subarea output_pyerr"&gt;
+&lt;pre&gt;
+&lt;span class="ansired"&gt;---------------------------------------------------------------------------&lt;/span&gt;
+&lt;span class="ansired"&gt;AttributeError&lt;/span&gt;                            Traceback (most recent call last)
+&lt;span class="ansigreen"&gt;&amp;lt;ipython-input-26-fbd74f99b121&amp;gt;&lt;/span&gt; in &lt;span class="ansicyan"&gt;&amp;lt;module&amp;gt;&lt;/span&gt;&lt;span class="ansiblue"&gt;()&lt;/span&gt;
+&lt;span class="ansigreen"&gt;----&amp;gt; 1&lt;/span&gt;&lt;span class="ansired"&gt; &lt;/span&gt;t2&lt;span class="ansiblue"&gt;.&lt;/span&gt;v3&lt;span class="ansiblue"&gt;.&lt;/span&gt;sum&lt;span class="ansiblue"&gt;(&lt;/span&gt;&lt;span class="ansiblue"&gt;)&lt;/span&gt;&lt;span class="ansiblue"&gt;&lt;/span&gt;
+
+&lt;span class="ansired"&gt;AttributeError&lt;/span&gt;: &amp;apos;StringArray&amp;apos; object has no attribute &amp;apos;sum&amp;apos;&lt;/pre&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;div class="text_cell_render border-box-sizing rendered_html"&gt;
+&lt;p&gt;This constraint applies to all expressions. Suppose we casted &lt;code&gt;v1&lt;/code&gt; to string; this would still be true:&lt;/p&gt;
+&lt;/div&gt;
+&lt;div class="cell border-box-sizing code_cell vbox"&gt;
+&lt;div class="input hbox"&gt;
+&lt;div class="prompt input_prompt"&gt;
+In&amp;nbsp;[27]:
+&lt;/div&gt;
+&lt;div class="input_area box-flex1"&gt;
+&lt;div class="highlight-ipynb"&gt;&lt;pre class="ipynb"&gt;&lt;span class="n"&gt;t2&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;v1&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;sum&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;div class="vbox output_wrapper"&gt;
+&lt;div class="output vbox"&gt;
+
+
+&lt;div class="hbox output_area"&gt;&lt;div class="prompt output_prompt"&gt;
+    Out[27]:&lt;/div&gt;
+&lt;div class="box-flex1 output_subarea output_pyout"&gt;
+
+
+&lt;pre&gt;
+ref_0
+UnboundTable[table]
+  name: hamster
+  schema:
+    v1 : double
+    v2 : int32
+    v3 : string
+
+sum = Sum[double]
+  v1 = Column[array(double)] &amp;apos;v1&amp;apos; from table ref_0
+  None
+&lt;/pre&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;div class="cell border-box-sizing code_cell vbox"&gt;
+&lt;div class="input hbox"&gt;
+&lt;div class="prompt input_prompt"&gt;
+In&amp;nbsp;[28]:
+&lt;/div&gt;
+&lt;div class="input_area box-flex1"&gt;
+&lt;div class="highlight-ipynb"&gt;&lt;pre class="ipynb"&gt;&lt;span class="n"&gt;t2&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;v1&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;cast&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;&amp;#39;string&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;sum&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;div class="vbox output_wrapper"&gt;
+&lt;div class="output vbox"&gt;
+
+
+&lt;div class="hbox output_area"&gt;&lt;div class="prompt"&gt;&lt;/div&gt;
+&lt;div class="box-flex1 output_subarea output_pyerr"&gt;
+&lt;pre&gt;
+&lt;span class="ansired"&gt;---------------------------------------------------------------------------&lt;/span&gt;
+&lt;span class="ansired"&gt;AttributeError&lt;/span&gt;                            Traceback (most recent call last)
+&lt;span class="ansigreen"&gt;&amp;lt;ipython-input-28-b4e33ca864fd&amp;gt;&lt;/span&gt; in &lt;span class="ansicyan"&gt;&amp;lt;module&amp;gt;&lt;/span&gt;&lt;span class="ansiblue"&gt;()&lt;/span&gt;
+&lt;span class="ansigreen"&gt;----&amp;gt; 1&lt;/span&gt;&lt;span class="ansired"&gt; &lt;/span&gt;t2&lt;span class="ansiblue"&gt;.&lt;/span&gt;v1&lt;span class="ansiblue"&gt;.&lt;/span&gt;cast&lt;span class="ansiblue"&gt;(&lt;/span&gt;&lt;span class="ansiblue"&gt;&amp;apos;string&amp;apos;&lt;/span&gt;&lt;span class="ansiblue"&gt;)&lt;/span&gt;&lt;span class="ansiblue"&gt;.&lt;/span&gt;sum&lt;span class="ansiblue"&gt;(&lt;/span&gt;&lt;span class="ansiblue"&gt;)&lt;/span&gt;&lt;span class="ansiblue"&gt;&lt;/span&gt;
+
+&lt;span class="ansired"&gt;AttributeError&lt;/span&gt;: &amp;apos;StringArray&amp;apos; object has no attribute &amp;apos;sum&amp;apos;&lt;/pre&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;div class="text_cell_render border-box-sizing rendered_html"&gt;
+&lt;p&gt;In addition to not allowing you to call invalid instance methods, input arguments are all type-checked:&lt;/p&gt;
+&lt;/div&gt;
+&lt;div class="cell border-box-sizing code_cell vbox"&gt;
+&lt;div class="input hbox"&gt;
+&lt;div class="prompt input_prompt"&gt;
+In&amp;nbsp;[29]:
+&lt;/div&gt;
+&lt;div class="input_area box-flex1"&gt;
+&lt;div class="highlight-ipynb"&gt;&lt;pre class="ipynb"&gt;&lt;span class="n"&gt;expr&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;t2&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;v1&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;round&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="mi"&gt;2&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;  &lt;span class="c"&gt;# valid&lt;/span&gt;
+
+&lt;span class="n"&gt;t2&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;v1&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;round&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;&amp;#39;foo&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;  &lt;span class="c"&gt;# invalid&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;div class="vbox output_wrapper"&gt;
+&lt;div class="output vbox"&gt;
+
+
+&lt;div class="hbox output_area"&gt;&lt;div class="prompt"&gt;&lt;/div&gt;
+&lt;div class="box-flex1 output_subarea output_pyerr"&gt;
+&lt;pre&gt;
+&lt;span class="ansired"&gt;---------------------------------------------------------------------------&lt;/span&gt;
+&lt;span class="ansired"&gt;IbisTypeError&lt;/span&gt;                             Traceback (most recent call last)
+&lt;span class="ansigreen"&gt;&amp;lt;ipython-input-29-844feacfdc97&amp;gt;&lt;/span&gt; in &lt;span class="ansicyan"&gt;&amp;lt;module&amp;gt;&lt;/span&gt;&lt;span class="ansiblue"&gt;()&lt;/span&gt;
+&lt;span class="ansigreen"&gt;      1&lt;/span&gt; expr &lt;span class="ansiblue"&gt;=&lt;/span&gt; t2&lt;span class="ansiblue"&gt;.&lt;/span&gt;v1&lt;span class="ansiblue"&gt;.&lt;/span&gt;round&lt;span class="ansiblue"&gt;(&lt;/span&gt;&lt;span class="ansicyan"&gt;2&lt;/span&gt;&lt;span class="ansiblue"&gt;)&lt;/span&gt;  &lt;span class="ansired"&gt;# valid&lt;/span&gt;&lt;span class="ansiblue"&gt;&lt;/span&gt;
+&lt;span class="ansigreen"&gt;      2&lt;/span&gt; &lt;span class="ansiblue"&gt;&lt;/span&gt;
+&lt;span class="ansigreen"&gt;----&amp;gt; 3&lt;/span&gt;&lt;span class="ansired"&gt; &lt;/span&gt;t2&lt;span class="ansiblue"&gt;.&lt;/span&gt;v1&lt;span class="ansiblue"&gt;.&lt;/span&gt;round&lt;span class="ansiblue"&gt;(&lt;/span&gt;&lt;span class="ansiblue"&gt;&amp;apos;foo&amp;apos;&lt;/span&gt;&lt;span class="ansiblue"&gt;)&lt;/span&gt;  &lt;span class="ansired"&gt;# invalid&lt;/span&gt;&lt;span class="ansiblue"&gt;&lt;/span&gt;
+
+&lt;span class="ansigreen"&gt;/Users/wes/code/ibis/ibis/expr/api.pyc&lt;/span&gt; in &lt;span class="ansicyan"&gt;round&lt;/span&gt;&lt;span class="ansiblue"&gt;(arg, digits)&lt;/span&gt;
+&lt;span class="ansigreen"&gt;    955&lt;/span&gt;         other numeric types&lt;span class="ansiblue"&gt;:&lt;/span&gt; double&lt;span class="ansiblue"&gt;&lt;/span&gt;
+&lt;span class="ansigreen"&gt;    956&lt;/span&gt;     &amp;quot;&amp;quot;&amp;quot;
+&lt;span class="ansigreen"&gt;--&amp;gt; 957&lt;/span&gt;&lt;span class="ansired"&gt;     &lt;/span&gt;op &lt;span class="ansiblue"&gt;=&lt;/span&gt; _ops&lt;span class="ansiblue"&gt;.&lt;/span&gt;Round&lt;span class="ansiblue"&gt;(&lt;/span&gt;arg&lt;span class="ansiblue"&gt;,&lt;/span&gt; digits&lt;span class="ansiblue"&gt;)&lt;/span&gt;&lt;span class="ansiblue"&gt;&lt;/span&gt;
+&lt;span class="ansigreen"&gt;    958&lt;/span&gt;     &lt;span class="ansigreen"&gt;return&lt;/span&gt; op&lt;span class="ansiblue"&gt;.&lt;/span&gt;to_expr&lt;span class="ansiblue"&gt;(&lt;/span&gt;&lt;span class="ansiblue"&gt;)&lt;/span&gt;&lt;span class="ansiblue"&gt;&lt;/span&gt;
+&lt;span class="ansigreen"&gt;    959&lt;/span&gt; &lt;span class="ansiblue"&gt;&lt;/span&gt;
+
+&lt;span class="ansigreen"&gt;/Users/wes/code/ibis/ibis/expr/types.pyc&lt;/span&gt; in &lt;span class="ansicyan"&gt;__init__&lt;/span&gt;&lt;span class="ansiblue"&gt;(self, *args)&lt;/span&gt;
+&lt;span class="ansigreen"&gt;    269&lt;/span&gt; &lt;span class="ansiblue"&gt;&lt;/span&gt;
+&lt;span class="ansigreen"&gt;    270&lt;/span&gt;     &lt;span class="ansigreen"&gt;def&lt;/span&gt; __init__&lt;span class="ansiblue"&gt;(&lt;/span&gt;self&lt;span class="ansiblue"&gt;,&lt;/span&gt; &lt;span class="ansiblue"&gt;*&lt;/span&gt;args&lt;span class="ansiblue"&gt;)&lt;/span&gt;&lt;span class="ansiblue"&gt;:&lt;/span&gt;&lt;span class="ansiblue"&gt;&lt;/span&gt;
+&lt;span class="ansigreen"&gt;--&amp;gt; 271&lt;/span&gt;&lt;span class="ansired"&gt;         &lt;/span&gt;args &lt;span class="ansiblue"&gt;=&lt;/span&gt; self&lt;span class="ansiblue"&gt;.&lt;/span&gt;_validate_args&lt;span class="ansiblue"&gt;(&lt;/span&gt;args&lt;span class="ansiblue"&gt;)&lt;/span&gt;&lt;span class="ansiblue"&gt;&lt;/span&gt;
+&lt;span class="ansigreen"&gt;    272&lt;/span&gt;         Node&lt;span class="ansiblue"&gt;.&lt;/span&gt;__init__&lt;span class="ansiblue"&gt;(&lt;/span&gt;self&lt;span class="ansiblue"&gt;,&lt;/span&gt; args&lt;span class="ansiblue"&gt;)&lt;/span&gt;&lt;span class="ansiblue"&gt;&lt;/span&gt;
+&lt;span class="ansigreen"&gt;    273&lt;/span&gt; &lt;span class="ansiblue"&gt;&lt;/span&gt;
+
+&lt;span class="ansigreen"&gt;/Users/wes/code/ibis/ibis/expr/types.pyc&lt;/span&gt; in &lt;span class="ansicyan"&gt;_validate_args&lt;/span&gt;&lt;span class="ansiblue"&gt;(self, args)&lt;/span&gt;
+&lt;span class="ansigreen"&gt;    276&lt;/span&gt;             &lt;span class="ansigreen"&gt;return&lt;/span&gt; args&lt;span class="ansiblue"&gt;&lt;/span&gt;
+&lt;span class="ansigreen"&gt;    277&lt;/span&gt; &lt;span class="ansiblue"&gt;&lt;/span&gt;
+&lt;span class="ansigreen"&gt;--&amp;gt; 278&lt;/span&gt;&lt;span class="ansired"&gt;         &lt;/span&gt;&lt;span class="ansigreen"&gt;return&lt;/span&gt; self&lt;span class="ansiblue"&gt;.&lt;/span&gt;input_type&lt;span class="ansiblue"&gt;.&lt;/span&gt;validate&lt;span class="ansiblue"&gt;(&lt;/span&gt;args&lt;span class="ansiblue"&gt;)&lt;/span&gt;&lt;span class="ansiblue"&gt;&lt;/span&gt;
+&lt;span class="ansigreen"&gt;    279&lt;/span&gt; &lt;span class="ansiblue"&gt;&lt;/span&gt;
+&lt;span class="ansigreen"&gt;    280&lt;/span&gt;     &lt;span class="ansigreen"&gt;def&lt;/span&gt; root_tables&lt;span class="ansiblue"&gt;(&lt;/span&gt;self&lt;span class="ansiblue"&gt;)&lt;/span&gt;&lt;span class="ansiblue"&gt;:&lt;/span&gt;&lt;span class="ansiblue"&gt;&lt;/span&gt;
+
+&lt;span class="ansigreen"&gt;/Users/wes/code/ibis/ibis/expr/rules.pyc&lt;/span&gt; in &lt;span class="ansicyan"&gt;validate&lt;/span&gt;&lt;span class="ansiblue"&gt;(self, args)&lt;/span&gt;
+&lt;span class="ansigreen"&gt;    345&lt;/span&gt;             args &lt;span class="ansiblue"&gt;=&lt;/span&gt; list&lt;span class="ansiblue"&gt;(&lt;/span&gt;args&lt;span class="ansiblue"&gt;)&lt;/span&gt; &lt;span class="ansiblue"&gt;+&lt;/span&gt; &lt;span class="ansiblue"&gt;[&lt;/span&gt;t&lt;span class="ansiblue"&gt;.&lt;/span&gt;default &lt;span class="ansigreen"&gt;for&lt;/span&gt; t &lt;span class="ansigreen"&gt;in&lt;/span&gt; self&lt;span class="ansiblue"&gt;.&lt;/span&gt;types&lt;span class="ansiblue"&gt;[&lt;/span&gt;n&lt;span class="ansiblue"&gt;:&lt;/span&gt;&lt;span class="ansiblue"&gt;]&lt;/span&gt;&lt;span class="ansiblue"&gt;]&lt;/span&gt;&lt;span class="ansiblue"&gt;&lt;/span&gt;
+&lt;span class="ansigreen"&gt;    346&lt;/span&gt; &lt;span class="ansiblue"&gt;&lt;/span&gt;
+&lt;span class="ansigreen"&gt;--&amp;gt; 347&lt;/span&gt;&lt;span class="ansired"&gt;         &lt;/span&gt;&lt;span class="ansigreen"&gt;return&lt;/span&gt; self&lt;span class="ansiblue"&gt;.&lt;/span&gt;_validate&lt;span class="ansiblue"&gt;(&lt;/span&gt;args&lt;span class="ansiblue"&gt;,&lt;/span&gt; self&lt;span class="ansiblue"&gt;.&lt;/span&gt;types&lt;span class="ansiblue"&gt;)&lt;/span&gt;&lt;span class="ansiblue"&gt;&lt;/span&gt;
+&lt;span class="ansigreen"&gt;    348&lt;/span&gt; &lt;span class="ansiblue"&gt;&lt;/span&gt;
+&lt;span class="ansigreen"&gt;    349&lt;/span&gt;     &lt;span class="ansigreen"&gt;def&lt;/span&gt; _validate&lt;span class="ansiblue"&gt;(&lt;/span&gt;self&lt;span class="ansiblue"&gt;,&lt;/span&gt; args&lt;span class="ansiblue"&gt;,&lt;/span&gt; types&lt;span class="ansiblue"&gt;)&lt;/span&gt;&lt;span class="ansiblue"&gt;:&lt;/span&gt;&lt;span class="ansiblue"&gt;&lt;/span&gt;
+
+&lt;span class="ansigreen"&gt;/Users/wes/code/ibis/ibis/expr/rules.pyc&lt;/span&gt; in &lt;span class="ansicyan"&gt;_validate&lt;/span&gt;&lt;span class="ansiblue"&gt;(self, args, types)&lt;/span&gt;
+&lt;span class="ansigreen"&gt;    356&lt;/span&gt;                 msg = (&amp;apos;Argument {0}: {1}&amp;apos;.format(i, exc) +
+&lt;span class="ansigreen"&gt;    357&lt;/span&gt;                        &amp;apos;\nArgument was: {0}&amp;apos;.format(ir._safe_repr(args[i])))
+&lt;span class="ansigreen"&gt;--&amp;gt; 358&lt;/span&gt;&lt;span class="ansired"&gt;                 &lt;/span&gt;&lt;span class="ansigreen"&gt;raise&lt;/span&gt; IbisTypeError&lt;span class="ansiblue"&gt;(&lt;/span&gt;msg&lt;span class="ansiblue"&gt;)&lt;/span&gt;&lt;span class="ansiblue"&gt;&lt;/span&gt;
+&lt;span class="ansigreen"&gt;    359&lt;/span&gt; &lt;span class="ansiblue"&gt;&lt;/span&gt;
+&lt;span class="ansigreen"&gt;    360&lt;/span&gt;         &lt;span class="ansigreen"&gt;return&lt;/span&gt; clean_args&lt;span class="ansiblue"&gt;&lt;/span&gt;
+
+&lt;span class="ansired"&gt;IbisTypeError&lt;/span&gt;: Argument 1: not integer
+Argument was: &amp;apos;foo&amp;apos;&lt;/pre&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;div class="text_cell_render border-box-sizing rendered_html"&gt;
+&lt;h2 id="expression-type-hierarchies"&gt;Expression type hierarchies&lt;/h2&gt;
+&lt;p&gt;The user expression types inherit from a particular value type along with a shape type (table, array, or scalar).&lt;/p&gt;
+&lt;center&gt;
+&lt;img src="../images/int8value-mro.png"&gt;&lt;/img&gt;
+&lt;/center&gt;
+&lt;p&gt;Methods are shared amongst type classes, and the classes assist with type validation, implicit casts, and other internal matters in the DSL and SQL compiler toolchain.&lt;/p&gt;
+&lt;/div&gt;
+&lt;div class="text_cell_render border-box-sizing rendered_html"&gt;
+&lt;h2 id="some-ibis-and-blaze-dsl-comparisons"&gt;Some Ibis and Blaze DSL comparisons&lt;/h2&gt;
+&lt;p&gt;Since DSLs are inherently nuanced things, the only real way to evaluate them fully is to try to solve &lt;em&gt;your problem&lt;/em&gt; using one of them.&lt;/p&gt;
+&lt;p&gt;Architectural similarities are interesting, but in my experience &lt;strong&gt;API design / usability&lt;/strong&gt; and &lt;strong&gt;comprehensive solutions to use cases&lt;/strong&gt; are the only things that users care about. Blaze today conflicts with my (definitely opinionated) API design preferences and my understanding of the needs of SQL users (the intended audience for Ibis). It was much simpler for me to design a solution from scratch (whose design can be quickly changed without project governance issues) that meets my target users' design and usability requirements.&lt;/p&gt;
+&lt;p&gt;In an &lt;a href="http://blog.ibis-project.org/other-compute-engines/"&gt;earlier post here&lt;/a&gt;, I described how our priorities with Ibis are out of alignment with Blaze. I had a phone call with Continuum Analytics this past week to discuss Ibis and Blaze goals, use cases, and possible collaborations. They asked me for specific feedback on Blaze's API, so I'm digging in here to look closer.&lt;/p&gt;
+&lt;/div&gt;
+&lt;div class="cell border-box-sizing code_cell vbox"&gt;
+&lt;div class="input hbox"&gt;
+&lt;div class="prompt input_prompt"&gt;
+In&amp;nbsp;[30]:
+&lt;/div&gt;
+&lt;div class="input_area box-flex1"&gt;
+&lt;div class="highlight-ipynb"&gt;&lt;pre class="ipynb"&gt;&lt;span class="kn"&gt;import&lt;/span&gt; &lt;span class="nn"&gt;blaze&lt;/span&gt; &lt;span class="kn"&gt;as&lt;/span&gt; &lt;span class="nn"&gt;bz&lt;/span&gt;
+
+&lt;span class="n"&gt;t&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;bz&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;TableSymbol&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;&amp;#39;hamster&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s"&gt;&amp;#39;{v1: float64, v2: int32, v3: string}&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;span class="n"&gt;t&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;div class="vbox output_wrapper"&gt;
+&lt;div class="output vbox"&gt;
+
+
+&lt;div class="hbox output_area"&gt;&lt;div class="prompt output_prompt"&gt;
+    Out[30]:&lt;/div&gt;
+&lt;div class="box-flex1 output_subarea output_pyout"&gt;
+
+&lt;div class="output_html rendered_html"&gt;
+hamster
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;div class="cell border-box-sizing code_cell vbox"&gt;
+&lt;div class="input hbox"&gt;
+&lt;div class="prompt input_prompt"&gt;
+In&amp;nbsp;[31]:
+&lt;/div&gt;
+&lt;div class="input_area box-flex1"&gt;
+&lt;div class="highlight-ipynb"&gt;&lt;pre class="ipynb"&gt;&lt;span class="nb"&gt;type&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;t&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;div class="vbox output_wrapper"&gt;
+&lt;div class="output vbox"&gt;
+
+
+&lt;div class="hbox output_area"&gt;&lt;div class="prompt output_prompt"&gt;
+    Out[31]:&lt;/div&gt;
+&lt;div class="box-flex1 output_subarea output_pyout"&gt;
+
+
+&lt;pre&gt;
+blaze.expr.expressions.Symbol
+&lt;/pre&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;div class="text_cell_render border-box-sizing rendered_html"&gt;
+&lt;p&gt;Okay, how about the class hierarchy?&lt;/p&gt;
+&lt;/div&gt;
+&lt;div class="cell border-box-sizing code_cell vbox"&gt;
+&lt;div class="input hbox"&gt;
+&lt;div class="prompt input_prompt"&gt;
+In&amp;nbsp;[32]:
+&lt;/div&gt;
+&lt;div class="input_area box-flex1"&gt;
+&lt;div class="highlight-ipynb"&gt;&lt;pre class="ipynb"&gt;&lt;span class="nb"&gt;type&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;t&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;mro&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;div class="vbox output_wrapper"&gt;
+&lt;div class="output vbox"&gt;
+
+
+&lt;div class="hbox output_area"&gt;&lt;div class="prompt output_prompt"&gt;
+    Out[32]:&lt;/div&gt;
+&lt;div class="box-flex1 output_subarea output_pyout"&gt;
+
+
+&lt;pre&gt;
+[blaze.expr.expressions.Symbol,
+ blaze.expr.expressions.Expr,
+ blaze.expr.core.Node,
+ object]
+&lt;/pre&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;div class="text_cell_render border-box-sizing rendered_html"&gt;
+&lt;p&gt;Alright. You can find out what kind of expression you're dealing with by looking at the &lt;code&gt;dshape&lt;/code&gt; attribute:&lt;/p&gt;
+&lt;/div&gt;
+&lt;div class="cell border-box-sizing code_cell vbox"&gt;
+&lt;div class="input hbox"&gt;
+&lt;div class="prompt input_prompt"&gt;
+In&amp;nbsp;[33]:
+&lt;/div&gt;
+&lt;div class="input_area box-flex1"&gt;
+&lt;div class="highlight-ipynb"&gt;&lt;pre class="ipynb"&gt;&lt;span class="n"&gt;t&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;dshape&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;div class="vbox output_wrapper"&gt;
+&lt;div class="output vbox"&gt;
+
+
+&lt;div class="hbox output_area"&gt;&lt;div class="prompt output_prompt"&gt;
+    Out[33]:&lt;/div&gt;
+&lt;div class="box-flex1 output_subarea output_pyout"&gt;
+
+
+&lt;pre&gt;
+dshape(&amp;quot;var * {v1: float64, v2: int32, v3: string}&amp;quot;)
+&lt;/pre&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;div class="text_cell_render border-box-sizing rendered_html"&gt;
+&lt;p&gt;This is very NumPy-like, which is good and bad for reasons I've cited.&lt;/p&gt;
+&lt;p&gt;Let's look at a few simple expressions like the above:&lt;/p&gt;
+&lt;/div&gt;
+&lt;div class="cell border-box-sizing code_cell vbox"&gt;
+&lt;div class="input hbox"&gt;
+&lt;div class="prompt input_prompt"&gt;
+In&amp;nbsp;[34]:
+&lt;/div&gt;
+&lt;div class="input_area box-flex1"&gt;
+&lt;div class="highlight-ipynb"&gt;&lt;pre class="ipynb"&gt;&lt;span class="n"&gt;expr&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;t&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;v1&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;sum&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;div class="text_cell_render border-box-sizing rendered_html"&gt;
+&lt;p&gt;In Ibis, this yields a &lt;code&gt;DoubleScalar&lt;/code&gt;. Here it's a little different because there are no value types, only &lt;code&gt;Expr&lt;/code&gt;:&lt;/p&gt;
+&lt;/div&gt;
+&lt;div class="cell border-box-sizing code_cell vbox"&gt;
+&lt;div class="input hbox"&gt;
+&lt;div class="prompt input_prompt"&gt;
+In&amp;nbsp;[35]:
+&lt;/div&gt;
+&lt;div class="input_area box-flex1"&gt;
+&lt;div class="highlight-ipynb"&gt;&lt;pre class="ipynb"&gt;&lt;span class="n"&gt;expr&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;div class="vbox output_wrapper"&gt;
+&lt;div class="output vbox"&gt;
+
+
+&lt;div class="hbox output_area"&gt;&lt;div class="prompt output_prompt"&gt;
+    Out[35]:&lt;/div&gt;
+&lt;div class="box-flex1 output_subarea output_pyout"&gt;
+
+&lt;div class="output_html rendered_html"&gt;
+sum(hamster.v1)
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;div class="cell border-box-sizing code_cell vbox"&gt;
+&lt;div class="input hbox"&gt;
+&lt;div class="prompt input_prompt"&gt;
+In&amp;nbsp;[36]:
+&lt;/div&gt;
+&lt;div class="input_area box-flex1"&gt;
+&lt;div class="highlight-ipynb"&gt;&lt;pre class="ipynb"&gt;&lt;span class="nb"&gt;type&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;expr&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;div class="vbox output_wrapper"&gt;
+&lt;div class="output vbox"&gt;
+
+
+&lt;div class="hbox output_area"&gt;&lt;div class="prompt output_prompt"&gt;
+    Out[36]:&lt;/div&gt;
+&lt;div class="box-flex1 output_subarea output_pyout"&gt;
+
+
+&lt;pre&gt;
+blaze.expr.reductions.sum
+&lt;/pre&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;div class="cell border-box-sizing code_cell vbox"&gt;
+&lt;div class="input hbox"&gt;
+&lt;div class="prompt input_prompt"&gt;
+In&amp;nbsp;[37]:
+&lt;/div&gt;
+&lt;div class="input_area box-flex1"&gt;
+&lt;div class="highlight-ipynb"&gt;&lt;pre class="ipynb"&gt;&lt;span class="nb"&gt;type&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;expr&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;mro&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;div class="vbox output_wrapper"&gt;
+&lt;div class="output vbox"&gt;
+
+
+&lt;div class="hbox output_area"&gt;&lt;div class="prompt output_prompt"&gt;
+    Out[37]:&lt;/div&gt;
+&lt;div class="box-flex1 output_subarea output_pyout"&gt;
+
+
+&lt;pre&gt;
+[blaze.expr.reductions.sum,
+ blaze.expr.reductions.Reduction,
+ blaze.expr.expressions.Expr,
+ blaze.expr.core.Node,
+ object]
+&lt;/pre&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;div class="cell border-box-sizing code_cell vbox"&gt;
+&lt;div class="input hbox"&gt;
+&lt;div class="prompt input_prompt"&gt;
+In&amp;nbsp;[38]:
+&lt;/div&gt;
+&lt;div class="input_area box-flex1"&gt;
+&lt;div class="highlight-ipynb"&gt;&lt;pre class="ipynb"&gt;&lt;span class="n"&gt;expr&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;dshape&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;div class="vbox output_wrapper"&gt;
+&lt;div class="output vbox"&gt;
+
+
+&lt;div class="hbox output_area"&gt;&lt;div class="prompt output_prompt"&gt;
+    Out[38]:&lt;/div&gt;
+&lt;div class="box-flex1 output_subarea output_pyout"&gt;
+
+
+&lt;pre&gt;
+dshape(&amp;quot;float64&amp;quot;)
+&lt;/pre&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;div class="text_cell_render border-box-sizing rendered_html"&gt;
+&lt;p&gt;You also can't do &lt;code&gt;sum&lt;/code&gt; on a string:&lt;/p&gt;
+&lt;/div&gt;
+&lt;div class="cell border-box-sizing code_cell vbox"&gt;
+&lt;div class="input hbox"&gt;
+&lt;div class="prompt input_prompt"&gt;
+In&amp;nbsp;[39]:
+&lt;/div&gt;
+&lt;div class="input_area box-flex1"&gt;
+&lt;div class="highlight-ipynb"&gt;&lt;pre class="ipynb"&gt;&lt;span class="n"&gt;t&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;v3&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;sum&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;div class="vbox output_wrapper"&gt;
+&lt;div class="output vbox"&gt;
+
+
+&lt;div class="hbox output_area"&gt;&lt;div class="prompt"&gt;&lt;/div&gt;
+&lt;div class="box-flex1 output_subarea output_pyerr"&gt;
+&lt;pre&gt;
+&lt;span class="ansired"&gt;---------------------------------------------------------------------------&lt;/span&gt;
+&lt;span class="ansired"&gt;AttributeError&lt;/span&gt;                            Traceback (most recent call last)
+&lt;span class="ansigreen"&gt;&amp;lt;ipython-input-39-32d7bb6499a7&amp;gt;&lt;/span&gt; in &lt;span class="ansicyan"&gt;&amp;lt;module&amp;gt;&lt;/span&gt;&lt;span class="ansiblue"&gt;()&lt;/span&gt;
+&lt;span class="ansigreen"&gt;----&amp;gt; 1&lt;/span&gt;&lt;span class="ansired"&gt; &lt;/span&gt;t&lt;span class="ansiblue"&gt;.&lt;/span&gt;v3&lt;span class="ansiblue"&gt;.&lt;/span&gt;sum&lt;span class="ansiblue"&gt;(&lt;/span&gt;&lt;span class="ansiblue"&gt;)&lt;/span&gt;&lt;span class="ansiblue"&gt;&lt;/span&gt;
+
+&lt;span class="ansigreen"&gt;/Users/wes/anaconda/envs/ibis-blog/lib/python2.7/site-packages/blaze/expr/expressions.pyc&lt;/span&gt; in &lt;span class="ansicyan"&gt;__getattr__&lt;/span&gt;&lt;span class="ansiblue"&gt;(self, key)&lt;/span&gt;
+&lt;span class="ansigreen"&gt;    168&lt;/span&gt;             &lt;span class="ansigreen"&gt;pass&lt;/span&gt;&lt;span class="ansiblue"&gt;&lt;/span&gt;
+&lt;span class="ansigreen"&gt;    169&lt;/span&gt;         &lt;span class="ansigreen"&gt;try&lt;/span&gt;&lt;span class="ansiblue"&gt;:&lt;/span&gt;&lt;span class="ansiblue"&gt;&lt;/span&gt;
+&lt;span class="ansigreen"&gt;--&amp;gt; 170&lt;/span&gt;&lt;span class="ansired"&gt;             &lt;/span&gt;result &lt;span class="ansiblue"&gt;=&lt;/span&gt; object&lt;span class="ansiblue"&gt;.&lt;/span&gt;__getattribute__&lt;span class="ansiblue"&gt;(&lt;/span&gt;self&lt;span class="ansiblue"&gt;,&lt;/span&gt; key&lt;span class="ansiblue"&gt;)&lt;/span&gt;&lt;span class="ansiblue"&gt;&lt;/span&gt;
+&lt;span class="ansigreen"&gt;    171&lt;/span&gt;         &lt;span class="ansigreen"&gt;except&lt;/span&gt; AttributeError&lt;span class="ansiblue"&gt;:&lt;/span&gt;&lt;span class="ansiblue"&gt;&lt;/span&gt;
+&lt;span class="ansigreen"&gt;    172&lt;/span&gt;             fields = dict(zip(map(valid_identifier, self.fields),
+
+&lt;span class="ansired"&gt;AttributeError&lt;/span&gt;: &amp;apos;Field&amp;apos; object has no attribute &amp;apos;sum&amp;apos;&lt;/pre&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;div class="text_cell_render border-box-sizing rendered_html"&gt;
+&lt;p&gt;Most methods in Blaze are not instance methods, and are instead found in &lt;code&gt;blaze.expr.functions&lt;/code&gt;:&lt;/p&gt;
+&lt;/div&gt;
+&lt;div class="cell border-box-sizing code_cell vbox"&gt;
+&lt;div class="input hbox"&gt;
+&lt;div class="prompt input_prompt"&gt;
+In&amp;nbsp;[40]:
+&lt;/div&gt;
+&lt;div class="input_area box-flex1"&gt;
+&lt;div class="highlight-ipynb"&gt;&lt;pre class="ipynb"&gt;&lt;span class="kn"&gt;import&lt;/span&gt; &lt;span class="nn"&gt;blaze.expr.functions&lt;/span&gt; &lt;span class="kn"&gt;as&lt;/span&gt; &lt;span class="nn"&gt;bzfunc&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;div class="text_cell_render border-box-sizing rendered_html"&gt;
+&lt;p&gt;Sadly, things start going poorly when I make mistakes using functions in &lt;code&gt;bzfunc&lt;/code&gt;:&lt;/p&gt;
+&lt;/div&gt;
+&lt;div class="cell border-box-sizing code_cell vbox"&gt;
+&lt;div class="input hbox"&gt;
+&lt;div class="prompt input_prompt"&gt;
+In&amp;nbsp;[41]:
+&lt;/div&gt;
+&lt;div class="input_area box-flex1"&gt;
+&lt;div class="highlight-ipynb"&gt;&lt;pre class="ipynb"&gt;&lt;span class="n"&gt;expr&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;bzfunc&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;sum&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;t&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;v3&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;span class="n"&gt;expr&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;div class="vbox output_wrapper"&gt;
+&lt;div class="output vbox"&gt;
+
+
+&lt;div class="hbox output_area"&gt;&lt;div class="prompt output_prompt"&gt;
+    Out[41]:&lt;/div&gt;
+&lt;div class="box-flex1 output_subarea output_pyout"&gt;
+
+&lt;div class="output_html rendered_html"&gt;
+sum(hamster.v3)
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;div class="text_cell_render border-box-sizing rendered_html"&gt;
+&lt;p&gt;Wait, wasn't &lt;code&gt;v3&lt;/code&gt; a string?&lt;/p&gt;
+&lt;/div&gt;
+&lt;div class="cell border-box-sizing code_cell vbox"&gt;
+&lt;div class="input hbox"&gt;
+&lt;div class="prompt input_prompt"&gt;
+In&amp;nbsp;[42]:
+&lt;/div&gt;
+&lt;div class="input_area box-flex1"&gt;
+&lt;div class="highlight-ipynb"&gt;&lt;pre class="ipynb"&gt;&lt;span class="n"&gt;expr&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;dshape&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;div class="vbox output_wrapper"&gt;
+&lt;div class="output vbox"&gt;
+
+
+&lt;div class="hbox output_area"&gt;&lt;div class="prompt"&gt;&lt;/div&gt;
+&lt;div class="box-flex1 output_subarea output_pyerr"&gt;
+&lt;pre&gt;
+&lt;span class="ansired"&gt;---------------------------------------------------------------------------&lt;/span&gt;
+&lt;span class="ansired"&gt;AssertionError&lt;/span&gt;                            Traceback (most recent call last)
+&lt;span class="ansigreen"&gt;&amp;lt;ipython-input-42-b75fb756f813&amp;gt;&lt;/span&gt; in &lt;span class="ansicyan"&gt;&amp;lt;module&amp;gt;&lt;/span&gt;&lt;span class="ansiblue"&gt;()&lt;/span&gt;
+&lt;span class="ansigreen"&gt;----&amp;gt; 1&lt;/span&gt;&lt;span class="ansired"&gt; &lt;/span&gt;expr&lt;span class="ansiblue"&gt;.&lt;/span&gt;dshape&lt;span class="ansiblue"&gt;&lt;/span&gt;
+
+&lt;span class="ansigreen"&gt;/Users/wes/anaconda/envs/ibis-blog/lib/python2.7/site-packages/blaze/expr/reductions.pyc&lt;/span&gt; in &lt;span class="ansicyan"&gt;dshape&lt;/span&gt;&lt;span class="ansiblue"&gt;(self)&lt;/span&gt;
+&lt;span class="ansigreen"&gt;     64&lt;/span&gt;                           &lt;span class="ansigreen"&gt;for&lt;/span&gt; i&lt;span class="ansiblue"&gt;,&lt;/span&gt; d &lt;span class="ansigreen"&gt;in&lt;/span&gt; enumerate&lt;span class="ansiblue"&gt;(&lt;/span&gt;self&lt;span class="ansiblue"&gt;.&lt;/span&gt;_child&lt;span class="ansiblue"&gt;.&lt;/span&gt;shape&lt;span class="ansiblue"&gt;)&lt;/span&gt;&lt;span class="ansiblue"&gt;&lt;/span&gt;
+&lt;span class="ansigreen"&gt;     65&lt;/span&gt;                           if i not in axis)
+&lt;span class="ansigreen"&gt;---&amp;gt; 66&lt;/span&gt;&lt;span class="ansired"&gt;         &lt;/span&gt;&lt;span class="ansigreen"&gt;return&lt;/span&gt; DataShape&lt;span class="ansiblue"&gt;(&lt;/span&gt;&lt;span class="ansiblue"&gt;*&lt;/span&gt;&lt;span class="ansiblue"&gt;(&lt;/span&gt;shape &lt;span class="ansiblue"&gt;+&lt;/span&gt; &lt;span class="ansiblue"&gt;(&lt;/span&gt;self&lt;span class="ansiblue"&gt;.&lt;/span&gt;schema&lt;span class="ansiblue"&gt;,&lt;/span&gt;&lt;span class="ansiblue"&gt;)&lt;/span&gt;&lt;span class="ansiblue"&gt;)&lt;/span&gt;&lt;span class="ansiblue"&gt;)&lt;/span&gt;&lt;span class="ansiblue"&gt;&lt;/span&gt;
+&lt;span class="ansigreen"&gt;     67&lt;/span&gt; &lt;span class="ansiblue"&gt;&lt;/span&gt;
+&lt;span class="ansigreen"&gt;     68&lt;/span&gt;     &lt;span class="ansiblue"&gt;@&lt;/span&gt;property&lt;span class="ansiblue"&gt;&lt;/span&gt;
+
+&lt;span class="ansigreen"&gt;/Users/wes/anaconda/envs/ibis-blog/lib/python2.7/site-packages/blaze/expr/reductions.pyc&lt;/span&gt; in &lt;span class="ansicyan"&gt;schema&lt;/span&gt;&lt;span class="ansiblue"&gt;(self)&lt;/span&gt;
+&lt;span class="ansigreen"&gt;    115&lt;/span&gt;     &lt;span class="ansiblue"&gt;@&lt;/span&gt;property&lt;span class="ansiblue"&gt;&lt;/span&gt;
+&lt;span class="ansigreen"&gt;    116&lt;/span&gt;     &lt;span class="ansigreen"&gt;def&lt;/span&gt; schema&lt;span class="ansiblue"&gt;(&lt;/span&gt;self&lt;span class="ansiblue"&gt;)&lt;/span&gt;&lt;span class="ansiblue"&gt;:&lt;/span&gt;&lt;span class="ansiblue"&gt;&lt;/span&gt;
+&lt;span class="ansigreen"&gt;--&amp;gt; 117&lt;/span&gt;&lt;span class="ansired"&gt;         &lt;/span&gt;&lt;span class="ansigreen"&gt;return&lt;/span&gt; DataShape&lt;span class="ansiblue"&gt;(&lt;/span&gt;datashape&lt;span class="ansiblue"&gt;.&lt;/span&gt;maxtype&lt;span class="ansiblue"&gt;(&lt;/span&gt;super&lt;span class="ansiblue"&gt;(&lt;/span&gt;sum&lt;span class="ansiblue"&gt;,&lt;/span&gt; self&lt;span class="ansiblue"&gt;)&lt;/span&gt;&lt;span class="ansiblue"&gt;.&lt;/span&gt;schema&lt;span class="ansiblue"&gt;)&lt;/span&gt;&lt;span class="ansiblue"&gt;)&lt;/span&gt;&lt;span class="ansiblue"&gt;&lt;/span&gt;
+&lt;span class="ansigreen"&gt;    118&lt;/span&gt; &lt;span class="ansiblue"&gt;&lt;/span&gt;
+&lt;span class="ansigreen"&gt;    119&lt;/span&gt; &lt;span class="ansiblue"&gt;&lt;/span&gt;
+
+&lt;span class="ansigreen"&gt;/Users/wes/anaconda/envs/ibis-blog/lib/python2.7/site-packages/datashape/typesets.pyc&lt;/span&gt; in &lt;span class="ansicyan"&gt;maxtype&lt;/span&gt;&lt;span class="ansiblue"&gt;(measure)&lt;/span&gt;
+&lt;span class="ansigreen"&gt;    182&lt;/span&gt;     &lt;span class="ansigreen"&gt;if&lt;/span&gt; isoption&lt;span class="ansiblue"&gt;:&lt;/span&gt;&lt;span class="ansiblue"&gt;&lt;/span&gt;
+&lt;span class="ansigreen"&gt;    183&lt;/span&gt;         measure &lt;span class="ansiblue"&gt;=&lt;/span&gt; measure&lt;span class="ansiblue"&gt;.&lt;/span&gt;ty&lt;span class="ansiblue"&gt;&lt;/span&gt;
+&lt;span class="ansigreen"&gt;--&amp;gt; 184&lt;/span&gt;&lt;span class="ansired"&gt;     &lt;/span&gt;&lt;span class="ansigreen"&gt;assert&lt;/span&gt; matches_typeset&lt;span class="ansiblue"&gt;(&lt;/span&gt;measure&lt;span class="ansiblue"&gt;,&lt;/span&gt; scalar&lt;span class="ansiblue"&gt;)&lt;/span&gt;&lt;span class="ansiblue"&gt;,&lt;/span&gt; &lt;span class="ansiblue"&gt;&amp;apos;measure must be numeric&amp;apos;&lt;/span&gt;&lt;span class="ansiblue"&gt;&lt;/span&gt;
+&lt;span class="ansigreen"&gt;    185&lt;/span&gt; &lt;span class="ansiblue"&gt;&lt;/span&gt;
+&lt;span class="ansigreen"&gt;    186&lt;/span&gt;     &lt;span class="ansigreen"&gt;if&lt;/span&gt; measure &lt;span class="ansiblue"&gt;==&lt;/span&gt; bool_&lt;span class="ansiblue"&gt;:&lt;/span&gt;&lt;span class="ansiblue"&gt;&lt;/span&gt;
+
+&lt;span class="ansired"&gt;AssertionError&lt;/span&gt;: measure must be numeric&lt;/pre&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;div class="text_cell_render border-box-sizing rendered_html"&gt;
+&lt;p&gt;Let me try something else, like &lt;code&gt;sqrt&lt;/code&gt;:&lt;/p&gt;
+&lt;/div&gt;
+&lt;div class="cell border-box-sizing code_cell vbox"&gt;
+&lt;div class="input hbox"&gt;
+&lt;div class="prompt input_prompt"&gt;
+In&amp;nbsp;[43]:
+&lt;/div&gt;
+&lt;div class="input_area box-flex1"&gt;
+&lt;div class="highlight-ipynb"&gt;&lt;pre class="ipynb"&gt;&lt;span class="n"&gt;expr&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;bzfunc&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;sqrt&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;t&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;v3&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;span class="n"&gt;expr&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;dshape&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;div class="vbox output_wrapper"&gt;
+&lt;div class="output vbox"&gt;
+
+
+&lt;div class="hbox output_area"&gt;&lt;div class="prompt output_prompt"&gt;
+    Out[43]:&lt;/div&gt;
+&lt;div class="box-flex1 output_subarea output_pyout"&gt;
+
+
+&lt;pre&gt;
+dshape(&amp;quot;var * float64&amp;quot;)
+&lt;/pre&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;div class="text_cell_render border-box-sizing rendered_html"&gt;
+&lt;p&gt;So that's not good either. I couldn't find a &lt;code&gt;round&lt;/code&gt; function. Let me try adding a double to a string:&lt;/p&gt;
+&lt;/div&gt;
+&lt;div class="cell border-box-sizing code_cell vbox"&gt;
+&lt;div class="input hbox"&gt;
+&lt;div class="prompt input_prompt"&gt;
+In&amp;nbsp;[44]:
+&lt;/div&gt;
+&lt;div class="input_area box-flex1"&gt;
+&lt;div class="highlight-ipynb"&gt;&lt;pre class="ipynb"&gt;&lt;span class="n"&gt;expr&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;t&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;v1&lt;/span&gt; &lt;span class="o"&gt;+&lt;/span&gt; &lt;span class="n"&gt;t&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;v3&lt;/span&gt;
+&lt;span class="n"&gt;expr&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;div class="vbox output_wrapper"&gt;
+&lt;div class="output vbox"&gt;
+
+
+&lt;div class="hbox output_area"&gt;&lt;div class="prompt output_prompt"&gt;
+    Out[44]:&lt;/div&gt;
+&lt;div class="box-flex1 output_subarea output_pyout"&gt;
+
+&lt;div class="output_html rendered_html"&gt;
+hamster.v1 + hamster.v3
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;div class="text_cell_render border-box-sizing rendered_html"&gt;
+&lt;p&gt;I don't think that should work either. Also:&lt;/p&gt;
+&lt;/div&gt;
+&lt;div class="cell border-box-sizing code_cell vbox"&gt;
+&lt;div class="input hbox"&gt;
+&lt;div class="prompt input_prompt"&gt;
+In&amp;nbsp;[45]:
+&lt;/div&gt;
+&lt;div class="input_area box-flex1"&gt;
+&lt;div class="highlight-ipynb"&gt;&lt;pre class="ipynb"&gt;&lt;span class="n"&gt;expr&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;dshape&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;div class="vbox output_wrapper"&gt;
+&lt;div class="output vbox"&gt;
+
+
+&lt;div class="hbox output_area"&gt;&lt;div class="prompt output_prompt"&gt;
+    Out[45]:&lt;/div&gt;
+&lt;div class="box-flex1 output_subarea output_pyout"&gt;
+
+
+&lt;pre&gt;
+dshape(&amp;quot;var * object&amp;quot;)
+&lt;/pre&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;div class="text_cell_render border-box-sizing rendered_html"&gt;
+&lt;p&gt;Invalid table-level expressions are also not problematic at all:&lt;/p&gt;
+&lt;/div&gt;
+&lt;div class="cell border-box-sizing code_cell vbox"&gt;
+&lt;div class="input hbox"&gt;
+&lt;div class="prompt input_prompt"&gt;
+In&amp;nbsp;[46]:
+&lt;/div&gt;
+&lt;div class="input_area box-flex1"&gt;
+&lt;div class="highlight-ipynb"&gt;&lt;pre class="ipynb"&gt;&lt;span class="n"&gt;expr&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;t&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="n"&gt;t&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;v3&lt;/span&gt; &lt;span class="o"&gt;&amp;gt;&lt;/span&gt; &lt;span class="mi"&gt;5&lt;/span&gt;&lt;span class="p"&gt;]&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;div class="text_cell_render border-box-sizing rendered_html"&gt;
+&lt;p&gt;I also find the spread of functionality between &lt;code&gt;blaze.expr.functions&lt;/code&gt; and instance methods to conflict with my sensibilities (which are admittedly highly subjective and pandas-influenced). For example, a float scalar object has some functions but others are found elsewhere.&lt;/p&gt;
+&lt;/div&gt;
+&lt;div class="cell border-box-sizing code_cell vbox"&gt;
+&lt;div class="input hbox"&gt;
+&lt;div class="prompt input_prompt"&gt;
+In&amp;nbsp;[47]:
+&lt;/div&gt;
+&lt;div class="input_area box-flex1"&gt;
+&lt;div class="highlight-ipynb"&gt;&lt;pre class="ipynb"&gt;&lt;span class="n"&gt;expr&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;bzfunc&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;sum&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;t&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;v1&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;span class="k"&gt;print&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;expr&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;dshape&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="n"&gt;x&lt;/span&gt; &lt;span class="k"&gt;for&lt;/span&gt; &lt;span class="n"&gt;x&lt;/span&gt; &lt;span class="ow"&gt;in&lt;/span&gt; &lt;span class="nb"&gt;dir&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;expr&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="ow"&gt;not&lt;/span&gt; &lt;span class="n"&gt;x&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;startswith&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;&amp;#39;_&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;)]&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;div class="vbox output_wrapper"&gt;
+&lt;div class="output vbox"&gt;
+
+
+&lt;div class="hbox output_area"&gt;&lt;div class="prompt"&gt;&lt;/div&gt;
+&lt;div class="box-flex1 output_subarea output_stream output_stdout"&gt;
+&lt;pre&gt;
+float64
+
+&lt;/pre&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;div class="hbox output_area"&gt;&lt;div class="prompt output_prompt"&gt;
+    Out[47]:&lt;/div&gt;
+&lt;div class="box-flex1 output_subarea output_pyout"&gt;
+
+
+&lt;pre&gt;
+[&amp;apos;apply&amp;apos;,
+ &amp;apos;axis&amp;apos;,
+ &amp;apos;coerce&amp;apos;,
+ &amp;apos;dshape&amp;apos;,
+ &amp;apos;fields&amp;apos;,
+ &amp;apos;isidentical&amp;apos;,
+ &amp;apos;isnan&amp;apos;,
+ &amp;apos;keepdims&amp;apos;,
+ &amp;apos;label&amp;apos;,
+ &amp;apos;map&amp;apos;,
+ &amp;apos;relabel&amp;apos;,
+ &amp;apos;schema&amp;apos;,
+ &amp;apos;symbol&amp;apos;,
+ &amp;apos;truncate&amp;apos;,
+ &amp;apos;utcfromtimestamp&amp;apos;]
+&lt;/pre&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;div class="text_cell_render border-box-sizing rendered_html"&gt;
+&lt;p&gt;It's really just a difference in taste, but I prefer to have all my valid functions available as instance methods so that I can compose function chains more easily as seen above.&lt;/p&gt;
+&lt;p&gt;I wanted to try to reproduce examples on top of SQLite from my &lt;a href="http://blog.ibis-project.org/sqlite-crunchbase-quickstart/"&gt;last blog post&lt;/a&gt; but I found too much missing functionality, to name a couple specific things:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;case statements / if-else expressions. This also makes &lt;code&gt;bucket&lt;/code&gt; not possible to implement&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;fillna&lt;/code&gt; function&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Also, the way that joins work in Blaze is very un-SQL like (replicates pandas, in essence). This makes many SQL queries with joins hard to port. Check out the &lt;a href="http://docs.ibis-project.org/tutorial.html"&gt;Ibis tutorial&lt;/a&gt; for more on that.&lt;/p&gt;
+&lt;/div&gt;&lt;/p&gt;</summary></entry><entry><title>Quickstart on Crunchbase analysis using Ibis and SQLite</title><link href="http://blog.ibis-project.org/sqlite-crunchbase-quickstart/" rel="alternate"></link><updated>2015-09-09T08:01:00-07:00</updated><author><name>Wes McKinney</name></author><id>tag:blog.ibis-project.org,2015-09-09:sqlite-crunchbase-quickstart/</id><summary type="html">
 
 &lt;p&gt;The latest &lt;a href="http://blog.ibis-project.org/release-0.5/" target="_blank"&gt;0.5 version&lt;/a&gt; of Ibis supports executing
 expressions on data in SQLite database files. Since SQLite ships with Python,

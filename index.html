@@ -1791,6 +1791,30 @@ jQuery(document).ready(function($) {
   		<article>
 <header>
       <h1 class="entry-title">
+        <a href="http://blog.ibis-project.org/design-types-operations/">Ibis Design: Expression types and operation mechanics</a>
+      </h1>
+    <p class="meta">
+<time datetime="2015-09-13T10:00:00-07:00" pubdate>Sun 13 September 2015</time>    </p>
+</header>
+
+  <div class="entry-content">
+<p>This blog post describes Ibis's expression type system and how its DSL (domain-specific language) operations work. It's intended for curious users or developers of the project.</p>
+<p>I spent a lot of time thinking about how to create a deferred expression DSL that compiles to SQL and is fluid and intuitive to use. No small task.</p>
+<p>The key things I want to address are:</p>
+<ul>
+<li>Ibis's internal operation types and external user-facing types</li>
+<li>How the DSL semantics help you avoid making common mistakes</li>
+<li>How type checking and evaluation works</li>
+</ul>
+<p>At the end, since several people have asked me about it, I show some contrasts in Ibis's API design with <a href="http://blaze.pydata.org/">Blaze</a>, another Python project, that has its own embedded DSL.</p>
+</div>
+  <footer>
+    <a rel="full-article" href="http://blog.ibis-project.org/design-types-operations/">Read On &crarr;</a>
+  </footer>
+  		</article>
+  		<article>
+<header>
+      <h1 class="entry-title">
         <a href="http://blog.ibis-project.org/sqlite-crunchbase-quickstart/">Quickstart on Crunchbase analysis using Ibis and SQLite</a>
       </h1>
     <p class="meta">
@@ -1966,6 +1990,9 @@ periodically with:</p>
     <h1>Recent Posts</h1>
     <ul id="recent_posts">
       <li class="post">
+          <a href="http://blog.ibis-project.org/design-types-operations/">Ibis Design: Expression types and operation mechanics</a>
+      </li>
+      <li class="post">
           <a href="http://blog.ibis-project.org/sqlite-crunchbase-quickstart/">Quickstart on Crunchbase analysis using Ibis and SQLite</a>
       </li>
       <li class="post">
@@ -1976,9 +2003,6 @@ periodically with:</p>
       </li>
       <li class="post">
           <a href="http://blog.ibis-project.org/sql-window-functions/">Leveraging SQL window functions in Ibis</a>
-      </li>
-      <li class="post">
-          <a href="http://blog.ibis-project.org/release-0.4/">Ibis 0.4.0 release</a>
       </li>
     </ul>
   </section>

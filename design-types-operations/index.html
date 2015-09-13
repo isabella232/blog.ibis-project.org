@@ -4,7 +4,7 @@
 <!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
 <head>
   <meta charset="utf-8">
-  <title>Authors &mdash; Ibis Project Blog</title>
+  <title>Ibis Design: Expression types and operation mechanics &mdash; Ibis Project Blog</title>
   <meta name="author" content="Cloudera, Inc.">
 
   <link href="/atom.xml" type="application/atom+xml" rel="alternate"
@@ -1751,6 +1751,8 @@ jQuery(document).ready(function($) {
 
 
 
+
+
   <!-- http://t.co/dKP3o1e -->
   <meta name="HandheldFriendly" content="True">
   <meta name="MobileOptimized" content="320">
@@ -1788,13 +1790,1865 @@ jQuery(document).ready(function($) {
   <div id="main">
     <div id="content">
 <div>
-	<article role="article">
-    	<header>
-    		<h1 class="entry-title">Blog Authors</h1>
-    	</header>
+  <article class="hentry" role="article">
+<header>
+      <h1 class="entry-title">Ibis Design: Expression types and operation mechanics</h1>
+    <p class="meta">
+<time datetime="2015-09-13T10:00:00-07:00" pubdate>Sun 13 September 2015</time>    </p>
+</header>
 
-		<p><a href="http://blog.ibis-project.org/author/wes-mckinney.html">Wes McKinney</a> (9)</p>
-	</article>
+  <div class="entry-content"><p>
+<div class="text_cell_render border-box-sizing rendered_html">
+
+<p>This blog post describes Ibis's expression type system and how its DSL (domain-specific language) operations work. It's intended for curious users or developers of the project.</p>
+<p>I spent a lot of time thinking about how to create a deferred expression DSL that compiles to SQL and is fluid and intuitive to use. No small task.</p>
+<p>The key things I want to address are:</p>
+<ul>
+<li>Ibis's internal operation types and external user-facing types</li>
+<li>How the DSL semantics help you avoid making common mistakes</li>
+<li>How type checking and evaluation works</li>
+</ul>
+<p>At the end, since several people have asked me about it, I show some contrasts in Ibis's API design with <a href="http://blaze.pydata.org/">Blaze</a>, another Python project, that has its own embedded DSL.</p>
+
+<h2 id="ibis-expression-basics">Ibis expression basics</h2>
+<p>In general, all objects in Ibis semantically referencing real data fall into 3 categories:</p>
+<ul>
+<li>Tables: Database tables, data in formats like Parquet and Avro, or derived table expressions</li>
+<li>Arrays: Columns in tables or derived expressions thereof</li>
+<li>Scalars: Literal values and results of aggregations or analytic functions</li>
+</ul>
+<p>I'll give you a bunch of basic examples of these and then give more technical detail on the type system.</p>
+<p>Let's just take the number 5:</p>
+</div>
+<div class="cell border-box-sizing code_cell vbox">
+<div class="input hbox">
+<div class="prompt input_prompt">
+In&nbsp;[1]:
+</div>
+<div class="input_area box-flex1">
+<div class="highlight-ipynb"><pre class="ipynb"><span class="kn">import</span> <span class="nn">ibis</span>
+
+<span class="n">value</span> <span class="o">=</span> <span class="mi">5</span>
+</pre></div>
+
+</div>
+</div>
+
+</div>
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>Suppose you wanted to create an expression that uses this value. Ibis has the function <code>literal</code> that converts a Python scalar value to a well-typed expression. Most of the time this happens automatically, but let's do it explicitly:</p>
+</div>
+<div class="cell border-box-sizing code_cell vbox">
+<div class="input hbox">
+<div class="prompt input_prompt">
+In&nbsp;[2]:
+</div>
+<div class="input_area box-flex1">
+<div class="highlight-ipynb"><pre class="ipynb"><span class="n">int_expr</span> <span class="o">=</span> <span class="n">ibis</span><span class="o">.</span><span class="n">literal</span><span class="p">(</span><span class="mi">5</span><span class="p">)</span>
+<span class="n">int_expr</span>
+</pre></div>
+
+</div>
+</div>
+
+<div class="vbox output_wrapper">
+<div class="output vbox">
+
+
+<div class="hbox output_area"><div class="prompt output_prompt">
+    Out[2]:</div>
+<div class="box-flex1 output_subarea output_pyout">
+
+
+<pre>
+Literal[int8]
+  5
+</pre>
+
+</div>
+</div>
+
+</div>
+</div>
+
+</div>
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>This code didn't actually <em>do</em> anything. It created a <em>literal expression</em> containing the value 5. What you see in brackets is the output type of the operation <code>Literal</code>. What is <code>int_expr</code>, then?</p>
+</div>
+<div class="cell border-box-sizing code_cell vbox">
+<div class="input hbox">
+<div class="prompt input_prompt">
+In&nbsp;[3]:
+</div>
+<div class="input_area box-flex1">
+<div class="highlight-ipynb"><pre class="ipynb"><span class="nb">type</span><span class="p">(</span><span class="n">int_expr</span><span class="p">)</span>
+</pre></div>
+
+</div>
+</div>
+
+<div class="vbox output_wrapper">
+<div class="output vbox">
+
+
+<div class="hbox output_area"><div class="prompt output_prompt">
+    Out[3]:</div>
+<div class="box-flex1 output_subarea output_pyout">
+
+
+<pre>
+ibis.expr.types.Int8Scalar
+</pre>
+
+</div>
+</div>
+
+</div>
+</div>
+
+</div>
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>Okay, let's figure out this <code>int_expr</code> thing.</p>
+</div>
+<div class="cell border-box-sizing code_cell vbox">
+<div class="input hbox">
+<div class="prompt input_prompt">
+In&nbsp;[4]:
+</div>
+<div class="input_area box-flex1">
+<div class="highlight-ipynb"><pre class="ipynb"><span class="n">int_expr</span> <span class="o">+</span> <span class="mi">10</span>
+</pre></div>
+
+</div>
+</div>
+
+<div class="vbox output_wrapper">
+<div class="output vbox">
+
+
+<div class="hbox output_area"><div class="prompt output_prompt">
+    Out[4]:</div>
+<div class="box-flex1 output_subarea output_pyout">
+
+
+<pre>
+Add[int8]
+  Literal[int8]
+    5
+  Literal[int8]
+    10
+</pre>
+
+</div>
+</div>
+
+</div>
+</div>
+
+</div>
+<div class="cell border-box-sizing code_cell vbox">
+<div class="input hbox">
+<div class="prompt input_prompt">
+In&nbsp;[5]:
+</div>
+<div class="input_area box-flex1">
+<div class="highlight-ipynb"><pre class="ipynb"><span class="nb">type</span><span class="p">(</span><span class="n">int_expr</span> <span class="o">+</span> <span class="mi">10</span><span class="p">)</span>
+</pre></div>
+
+</div>
+</div>
+
+<div class="vbox output_wrapper">
+<div class="output vbox">
+
+
+<div class="hbox output_area"><div class="prompt output_prompt">
+    Out[5]:</div>
+<div class="box-flex1 output_subarea output_pyout">
+
+
+<pre>
+ibis.expr.types.Int8Scalar
+</pre>
+
+</div>
+</div>
+
+</div>
+</div>
+
+</div>
+<div class="cell border-box-sizing code_cell vbox">
+<div class="input hbox">
+<div class="prompt input_prompt">
+In&nbsp;[6]:
+</div>
+<div class="input_area box-flex1">
+<div class="highlight-ipynb"><pre class="ipynb"><span class="n">expr</span> <span class="o">=</span> <span class="p">(</span><span class="n">int_expr</span> <span class="o">+</span> <span class="mi">10</span><span class="p">)</span><span class="o">.</span><span class="n">sqrt</span><span class="p">()</span>
+<span class="n">expr</span>
+</pre></div>
+
+</div>
+</div>
+
+<div class="vbox output_wrapper">
+<div class="output vbox">
+
+
+<div class="hbox output_area"><div class="prompt output_prompt">
+    Out[6]:</div>
+<div class="box-flex1 output_subarea output_pyout">
+
+
+<pre>
+Sqrt[double]
+  Add[int8]
+    Literal[int8]
+      5
+    Literal[int8]
+      10
+</pre>
+
+</div>
+</div>
+
+</div>
+</div>
+
+</div>
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>Read the expression tree inside out. So <code>10</code> got automatically converted to a literal, then they're <code>Add</code>-ed together, finally <code>Sqrt</code> is applied. Note that:</p>
+</div>
+<div class="cell border-box-sizing code_cell vbox">
+<div class="input hbox">
+<div class="prompt input_prompt">
+In&nbsp;[7]:
+</div>
+<div class="input_area box-flex1">
+<div class="highlight-ipynb"><pre class="ipynb"><span class="nb">type</span><span class="p">(</span><span class="n">expr</span><span class="p">)</span>
+</pre></div>
+
+</div>
+</div>
+
+<div class="vbox output_wrapper">
+<div class="output vbox">
+
+
+<div class="hbox output_area"><div class="prompt output_prompt">
+    Out[7]:</div>
+<div class="box-flex1 output_subarea output_pyout">
+
+
+<pre>
+ibis.expr.types.DoubleScalar
+</pre>
+
+</div>
+</div>
+
+</div>
+</div>
+
+</div>
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>Let's round it to 2 decimal places for good measure:</p>
+</div>
+<div class="cell border-box-sizing code_cell vbox">
+<div class="input hbox">
+<div class="prompt input_prompt">
+In&nbsp;[8]:
+</div>
+<div class="input_area box-flex1">
+<div class="highlight-ipynb"><pre class="ipynb"><span class="n">rounded</span> <span class="o">=</span> <span class="n">expr</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+
+<span class="k">print</span><span class="p">(</span><span class="s">&#39;Type is {0!r}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">rounded</span><span class="p">)))</span>
+
+<span class="n">rounded</span>
+</pre></div>
+
+</div>
+</div>
+
+<div class="vbox output_wrapper">
+<div class="output vbox">
+
+
+<div class="hbox output_area"><div class="prompt"></div>
+<div class="box-flex1 output_subarea output_stream output_stdout">
+<pre>
+Type is &lt;class &apos;ibis.expr.types.DoubleScalar&apos;&gt;
+
+</pre>
+</div>
+</div>
+
+<div class="hbox output_area"><div class="prompt output_prompt">
+    Out[8]:</div>
+<div class="box-flex1 output_subarea output_pyout">
+
+
+<pre>
+Round[double]
+  Sqrt[double]
+    Add[int8]
+      Literal[int8]
+        5
+      Literal[int8]
+        10
+  Literal[int8]
+    2
+</pre>
+
+</div>
+</div>
+
+</div>
+</div>
+
+</div>
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>Now, if you wanted to run this expression inside Impala, it would get translated to this SQL:</p>
+</div>
+<div class="cell border-box-sizing code_cell vbox">
+<div class="input hbox">
+<div class="prompt input_prompt">
+In&nbsp;[9]:
+</div>
+<div class="input_area box-flex1">
+<div class="highlight-ipynb"><pre class="ipynb"><span class="k">print</span><span class="p">(</span><span class="n">ibis</span><span class="o">.</span><span class="n">impala</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="n">rounded</span><span class="p">))</span>
+</pre></div>
+
+</div>
+</div>
+
+<div class="vbox output_wrapper">
+<div class="output vbox">
+
+
+<div class="hbox output_area"><div class="prompt"></div>
+<div class="box-flex1 output_subarea output_stream output_stdout">
+<pre>
+SELECT round(sqrt(5 + 10), 2) AS &#96;tmp&#96;
+
+</pre>
+</div>
+</div>
+
+</div>
+</div>
+
+</div>
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>Indeed:</p>
+</div>
+<div class="cell border-box-sizing code_cell vbox">
+<div class="input hbox">
+<div class="prompt input_prompt">
+In&nbsp;[10]:
+</div>
+<div class="input_area box-flex1">
+<div class="highlight-ipynb"><pre class="ipynb"><span class="n">con</span> <span class="o">=</span> <span class="n">ibis</span><span class="o">.</span><span class="n">impala</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="s">&#39;bottou01.sjc.cloudera.com&#39;</span><span class="p">)</span>
+<span class="n">con</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">rounded</span><span class="p">)</span>
+</pre></div>
+
+</div>
+</div>
+
+<div class="vbox output_wrapper">
+<div class="output vbox">
+
+
+<div class="hbox output_area"><div class="prompt output_prompt">
+    Out[10]:</div>
+<div class="box-flex1 output_subarea output_pyout">
+
+
+<pre>
+3.8700000000000001
+</pre>
+
+</div>
+</div>
+
+</div>
+</div>
+
+</div>
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>Let's look at a table now:</p>
+</div>
+<div class="cell border-box-sizing code_cell vbox">
+<div class="input hbox">
+<div class="prompt input_prompt">
+In&nbsp;[11]:
+</div>
+<div class="input_area box-flex1">
+<div class="highlight-ipynb"><pre class="ipynb"><span class="n">db</span> <span class="o">=</span> <span class="n">con</span><span class="o">.</span><span class="n">database</span><span class="p">(</span><span class="s">&#39;ibis_testing&#39;</span><span class="p">)</span>
+<span class="n">t</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">functional_alltypes</span>
+<span class="n">t</span>
+</pre></div>
+
+</div>
+</div>
+
+<div class="vbox output_wrapper">
+<div class="output vbox">
+
+
+<div class="hbox output_area"><div class="prompt output_prompt">
+    Out[11]:</div>
+<div class="box-flex1 output_subarea output_pyout">
+
+
+<pre>
+DatabaseTable[table]
+  name: ibis_testing.&#96;functional_alltypes&#96;
+  schema:
+    id : int32
+    bool_col : boolean
+    tinyint_col : int8
+    smallint_col : int16
+    int_col : int32
+    bigint_col : int64
+    float_col : float
+    double_col : double
+    date_string_col : string
+    string_col : string
+    timestamp_col : timestamp
+    year : int32
+    month : int32
+</pre>
+
+</div>
+</div>
+
+</div>
+</div>
+
+</div>
+<div class="cell border-box-sizing code_cell vbox">
+<div class="input hbox">
+<div class="prompt input_prompt">
+In&nbsp;[12]:
+</div>
+<div class="input_area box-flex1">
+<div class="highlight-ipynb"><pre class="ipynb"><span class="nb">type</span><span class="p">(</span><span class="n">t</span><span class="p">)</span>
+</pre></div>
+
+</div>
+</div>
+
+<div class="vbox output_wrapper">
+<div class="output vbox">
+
+
+<div class="hbox output_area"><div class="prompt output_prompt">
+    Out[12]:</div>
+<div class="box-flex1 output_subarea output_pyout">
+
+
+<pre>
+ibis.impala.client.ImpalaTable
+</pre>
+
+</div>
+</div>
+
+</div>
+</div>
+
+</div>
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>This says <code>ImpalaTable</code>, but it's really <code>TableExpr</code> with a few extra methods that are Impala-specific. For experienced Pythonistas, you'll know the <code>mro</code> method gives you the full inheritance hierarchy:</p>
+</div>
+<div class="cell border-box-sizing code_cell vbox">
+<div class="input hbox">
+<div class="prompt input_prompt">
+In&nbsp;[13]:
+</div>
+<div class="input_area box-flex1">
+<div class="highlight-ipynb"><pre class="ipynb"><span class="nb">type</span><span class="p">(</span><span class="n">t</span><span class="p">)</span><span class="o">.</span><span class="n">mro</span><span class="p">()</span>
+</pre></div>
+
+</div>
+</div>
+
+<div class="vbox output_wrapper">
+<div class="output vbox">
+
+
+<div class="hbox output_area"><div class="prompt output_prompt">
+    Out[13]:</div>
+<div class="box-flex1 output_subarea output_pyout">
+
+
+<pre>
+[ibis.impala.client.ImpalaTable,
+ ibis.expr.types.TableExpr,
+ ibis.expr.types.Expr,
+ ibis.client.DatabaseEntity,
+ object]
+</pre>
+
+</div>
+</div>
+
+</div>
+</div>
+
+</div>
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>Now let's compute the same expression from above on <code>tinyint_col</code>, and sum it for kicks. I'll write it with one line per operation and add comments that show the operation name and output type of each operation:</p>
+</div>
+<div class="cell border-box-sizing code_cell vbox">
+<div class="input hbox">
+<div class="prompt input_prompt">
+In&nbsp;[14]:
+</div>
+<div class="input_area box-flex1">
+<div class="highlight-ipynb"><pre class="ipynb"><span class="n">expr</span> <span class="o">=</span> <span class="p">(</span><span class="n">t</span>             <span class="c"># DatabaseTable -&gt; TableExpr</span>
+        <span class="o">.</span><span class="n">limit</span><span class="p">(</span><span class="mi">20</span><span class="p">)</span>    <span class="c"># Limit         -&gt; TableExpr</span>
+        <span class="o">.</span><span class="n">tinyint_col</span>  <span class="c"># TableColumn   -&gt; Int8Array</span>
+        <span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span>      <span class="c"># Add           -&gt; Int8Array</span>
+        <span class="o">.</span><span class="n">sqrt</span><span class="p">()</span>       <span class="c"># Sqrt          -&gt; DoubleArray</span>
+        <span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>     <span class="c"># Round         -&gt; DoubleArray</span>
+        <span class="o">.</span><span class="n">sum</span><span class="p">())</span>       <span class="c"># Sum           -&gt; DoubleScalar</span>
+
+<span class="n">expr</span>
+</pre></div>
+
+</div>
+</div>
+
+<div class="vbox output_wrapper">
+<div class="output vbox">
+
+
+<div class="hbox output_area"><div class="prompt output_prompt">
+    Out[14]:</div>
+<div class="box-flex1 output_subarea output_pyout">
+
+
+<pre>
+ref_0
+DatabaseTable[table]
+  name: ibis_testing.&#96;functional_alltypes&#96;
+  schema:
+    id : int32
+    bool_col : boolean
+    tinyint_col : int8
+    smallint_col : int16
+    int_col : int32
+    bigint_col : int64
+    float_col : float
+    double_col : double
+    date_string_col : string
+    string_col : string
+    timestamp_col : timestamp
+    year : int32
+    month : int32
+
+sum = Sum[double]
+  Round[array(double)]
+    Sqrt[array(double)]
+      Add[array(int16)]
+        tinyint_col = Column[array(int8)] &apos;tinyint_col&apos; from table 
+          Limit[table]
+            Table: ref_0
+            n:
+              20
+            offset:
+              0
+        Literal[int8]
+          10
+    Literal[int8]
+      2
+  None
+</pre>
+
+</div>
+</div>
+
+</div>
+</div>
+
+</div>
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>As desired:</p>
+</div>
+<div class="cell border-box-sizing code_cell vbox">
+<div class="input hbox">
+<div class="prompt input_prompt">
+In&nbsp;[15]:
+</div>
+<div class="input_area box-flex1">
+<div class="highlight-ipynb"><pre class="ipynb"><span class="nb">type</span><span class="p">(</span><span class="n">expr</span><span class="p">)</span>
+</pre></div>
+
+</div>
+</div>
+
+<div class="vbox output_wrapper">
+<div class="output vbox">
+
+
+<div class="hbox output_area"><div class="prompt output_prompt">
+    Out[15]:</div>
+<div class="box-flex1 output_subarea output_pyout">
+
+
+<pre>
+ibis.expr.types.DoubleScalar
+</pre>
+
+</div>
+</div>
+
+</div>
+</div>
+
+</div>
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>And:</p>
+</div>
+<div class="cell border-box-sizing code_cell vbox">
+<div class="input hbox">
+<div class="prompt input_prompt">
+In&nbsp;[16]:
+</div>
+<div class="input_area box-flex1">
+<div class="highlight-ipynb"><pre class="ipynb"><span class="n">con</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">expr</span><span class="p">)</span>
+</pre></div>
+
+</div>
+</div>
+
+<div class="vbox output_wrapper">
+<div class="output vbox">
+
+
+<div class="hbox output_area"><div class="prompt output_prompt">
+    Out[16]:</div>
+<div class="box-flex1 output_subarea output_pyout">
+
+
+<pre>
+75.760000000000005
+</pre>
+
+</div>
+</div>
+
+</div>
+</div>
+
+</div>
+<div class="cell border-box-sizing code_cell vbox">
+<div class="input hbox">
+<div class="prompt input_prompt">
+In&nbsp;[17]:
+</div>
+<div class="input_area box-flex1">
+<div class="highlight-ipynb"><pre class="ipynb"><span class="k">print</span><span class="p">(</span><span class="n">expr</span><span class="o">.</span><span class="n">compile</span><span class="p">())</span>
+</pre></div>
+
+</div>
+</div>
+
+<div class="vbox output_wrapper">
+<div class="output vbox">
+
+
+<div class="hbox output_area"><div class="prompt"></div>
+<div class="box-flex1 output_subarea output_stream output_stdout">
+<pre>
+SELECT sum(round(sqrt(&#96;tinyint_col&#96; + 10), 2)) AS &#96;sum&#96;
+FROM (
+  SELECT *
+  FROM ibis_testing.&#96;functional_alltypes&#96;
+  LIMIT 20
+) t0
+
+</pre>
+</div>
+</div>
+
+</div>
+</div>
+
+</div>
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>Here's the important thing: <strong>the user never interacts with the actual operations</strong>. As a user, <strong>all you see are well-typed expressions having a particular value type (scalar, array, or table)</strong>. This makes your mode of interaction consistent and 100% reliable from step to step.</p>
+</div>
+<div class="text_cell_render border-box-sizing rendered_html">
+<h2 id="how-operations-yield-expressions">How operations yield expressions</h2>
+<p>To help understand how the DSL is constructed, let's deconstruct a simple string operation:</p>
+</div>
+<div class="cell border-box-sizing code_cell vbox">
+<div class="input hbox">
+<div class="prompt input_prompt">
+In&nbsp;[18]:
+</div>
+<div class="input_area box-flex1">
+<div class="highlight-ipynb"><pre class="ipynb"><span class="n">expr</span> <span class="o">=</span> <span class="n">ibis</span><span class="o">.</span><span class="n">literal</span><span class="p">(</span><span class="s">&#39;wes mckinney&#39;</span><span class="p">)</span>
+<span class="nb">type</span><span class="p">(</span><span class="n">expr</span><span class="p">)</span>
+</pre></div>
+
+</div>
+</div>
+
+<div class="vbox output_wrapper">
+<div class="output vbox">
+
+
+<div class="hbox output_area"><div class="prompt output_prompt">
+    Out[18]:</div>
+<div class="box-flex1 output_subarea output_pyout">
+
+
+<pre>
+ibis.expr.types.StringScalar
+</pre>
+
+</div>
+</div>
+
+</div>
+</div>
+
+</div>
+<div class="cell border-box-sizing code_cell vbox">
+<div class="input hbox">
+<div class="prompt input_prompt">
+In&nbsp;[19]:
+</div>
+<div class="input_area box-flex1">
+<div class="highlight-ipynb"><pre class="ipynb"><span class="n">chopped</span> <span class="o">=</span> <span class="n">expr</span><span class="o">.</span><span class="n">substr</span><span class="p">(</span><span class="mi">4</span><span class="p">)</span>
+<span class="n">chopped</span>
+</pre></div>
+
+</div>
+</div>
+
+<div class="vbox output_wrapper">
+<div class="output vbox">
+
+
+<div class="hbox output_area"><div class="prompt output_prompt">
+    Out[19]:</div>
+<div class="box-flex1 output_subarea output_pyout">
+
+
+<pre>
+Substring[string]
+  Literal[string]
+    wes mckinney
+  Literal[int8]
+    4
+  None
+</pre>
+
+</div>
+</div>
+
+</div>
+</div>
+
+</div>
+<div class="cell border-box-sizing code_cell vbox">
+<div class="input hbox">
+<div class="prompt input_prompt">
+In&nbsp;[20]:
+</div>
+<div class="input_area box-flex1">
+<div class="highlight-ipynb"><pre class="ipynb"><span class="n">chopped</span><span class="o">.</span><span class="n">execute</span><span class="p">()</span>
+</pre></div>
+
+</div>
+</div>
+
+<div class="vbox output_wrapper">
+<div class="output vbox">
+
+
+<div class="hbox output_area"><div class="prompt output_prompt">
+    Out[20]:</div>
+<div class="box-flex1 output_subarea output_pyout">
+
+
+<pre>
+&apos;mckinney&apos;
+</pre>
+
+</div>
+</div>
+
+</div>
+</div>
+
+</div>
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>Here is the implementation of <code>Substring</code>:</p>
+<div class="sourceCode"><pre class="sourceCode python"><code class="sourceCode python"><span class="kw">class</span> Substring(ValueOp):
+
+    input_type <span class="op">=</span> [string, integer(name<span class="op">=</span><span class="st">&#39;start&#39;</span>),
+                  integer(name<span class="op">=</span><span class="st">&#39;length&#39;</span>, optional<span class="op">=</span><span class="va">True</span>)]
+    output_type <span class="op">=</span> rules.shape_like_arg(<span class="dv">0</span>, <span class="st">&#39;string&#39;</span>)</code></pre></div>
+<p>What's going on when I call <code>expr.substr(4)</code> is, in fact:</p>
+</div>
+<div class="cell border-box-sizing code_cell vbox">
+<div class="input hbox">
+<div class="prompt input_prompt">
+In&nbsp;[21]:
+</div>
+<div class="input_area box-flex1">
+<div class="highlight-ipynb"><pre class="ipynb"><span class="kn">import</span> <span class="nn">ibis.expr.operations</span> <span class="kn">as</span> <span class="nn">ops</span>
+
+<span class="n">op</span> <span class="o">=</span> <span class="n">ops</span><span class="o">.</span><span class="n">Substring</span><span class="p">(</span><span class="n">expr</span><span class="p">,</span> <span class="mi">4</span><span class="p">)</span>
+
+<span class="nb">type</span><span class="p">(</span><span class="n">op</span><span class="p">)</span>
+</pre></div>
+
+</div>
+</div>
+
+<div class="vbox output_wrapper">
+<div class="output vbox">
+
+
+<div class="hbox output_area"><div class="prompt output_prompt">
+    Out[21]:</div>
+<div class="box-flex1 output_subarea output_pyout">
+
+
+<pre>
+ibis.expr.operations.Substring
+</pre>
+
+</div>
+</div>
+
+</div>
+</div>
+
+</div>
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>Among other things, this validated that the arguments match the <code>input_type</code> signature.</p>
+<p>The user will <em>never</em> directly interact with this object. All that matters is that its output is another string.</p>
+</div>
+<div class="cell border-box-sizing code_cell vbox">
+<div class="input hbox">
+<div class="prompt input_prompt">
+In&nbsp;[22]:
+</div>
+<div class="input_area box-flex1">
+<div class="highlight-ipynb"><pre class="ipynb"><span class="n">op</span><span class="o">.</span><span class="n">output_type</span><span class="p">()</span>
+</pre></div>
+
+</div>
+</div>
+
+<div class="vbox output_wrapper">
+<div class="output vbox">
+
+
+<div class="hbox output_area"><div class="prompt output_prompt">
+    Out[22]:</div>
+<div class="box-flex1 output_subarea output_pyout">
+
+
+<pre>
+ibis.expr.types.StringScalar
+</pre>
+
+</div>
+</div>
+
+</div>
+</div>
+
+</div>
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>Internally, Ibis calls the operation instance's <code>to_expr</code> method which wraps the operation in a <code>StringScalar</code> expression:</p>
+</div>
+<div class="cell border-box-sizing code_cell vbox">
+<div class="input hbox">
+<div class="prompt input_prompt">
+In&nbsp;[23]:
+</div>
+<div class="input_area box-flex1">
+<div class="highlight-ipynb"><pre class="ipynb"><span class="n">chopped</span> <span class="o">=</span> <span class="n">op</span><span class="o">.</span><span class="n">to_expr</span><span class="p">()</span>
+<span class="n">chopped</span>
+</pre></div>
+
+</div>
+</div>
+
+<div class="vbox output_wrapper">
+<div class="output vbox">
+
+
+<div class="hbox output_area"><div class="prompt output_prompt">
+    Out[23]:</div>
+<div class="box-flex1 output_subarea output_pyout">
+
+
+<pre>
+Substring[string]
+  Literal[string]
+    wes mckinney
+  Literal[int8]
+    4
+  None
+</pre>
+
+</div>
+</div>
+
+</div>
+</div>
+
+</div>
+<div class="text_cell_render border-box-sizing rendered_html">
+<h2 id="helping-you-avoid-invalid-operations">Helping you avoid invalid operations</h2>
+<blockquote>
+<p><strong>NB.</strong> This addresses a frequent rough edge I experienced when using NumPy to build pandas; namely that there is a single <code>ndarray</code> type whose values are only distinguished by the <code>dtype</code> attribute. pandas is now full of workarounds to provide data type-specific functionality on <code>Series</code> objects.</p>
+</blockquote>
+<p>Ibis tries to save you from forming invalid expressions in two ways:</p>
+<ul>
+<li>All instance methods on an expression are guaranteed to be valid (assuming there is a translation rule for your target SQL engine).</li>
+<li>Type-checking happens immediately, informing you of any mistakes</li>
+</ul>
+<p>Let's have a closer look at this. I'll use a simplified table (not referencing any real data) to make the output here more compact:</p>
+</div>
+<div class="cell border-box-sizing code_cell vbox">
+<div class="input hbox">
+<div class="prompt input_prompt">
+In&nbsp;[24]:
+</div>
+<div class="input_area box-flex1">
+<div class="highlight-ipynb"><pre class="ipynb"><span class="n">t2</span> <span class="o">=</span> <span class="n">ibis</span><span class="o">.</span><span class="n">table</span><span class="p">([(</span><span class="s">&#39;v1&#39;</span><span class="p">,</span> <span class="s">&#39;double&#39;</span><span class="p">),</span>
+                 <span class="p">(</span><span class="s">&#39;v2&#39;</span><span class="p">,</span> <span class="s">&#39;int32&#39;</span><span class="p">),</span>
+                 <span class="p">(</span><span class="s">&#39;v3&#39;</span><span class="p">,</span> <span class="s">&#39;string&#39;</span><span class="p">)],</span> <span class="s">&#39;hamster&#39;</span><span class="p">)</span>
+<span class="n">t2</span>
+</pre></div>
+
+</div>
+</div>
+
+<div class="vbox output_wrapper">
+<div class="output vbox">
+
+
+<div class="hbox output_area"><div class="prompt output_prompt">
+    Out[24]:</div>
+<div class="box-flex1 output_subarea output_pyout">
+
+
+<pre>
+UnboundTable[table]
+  name: hamster
+  schema:
+    v1 : double
+    v2 : int32
+    v3 : string
+</pre>
+
+</div>
+</div>
+
+</div>
+</div>
+
+</div>
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>Let's look at the string column <code>v3</code>:</p>
+</div>
+<div class="cell border-box-sizing code_cell vbox">
+<div class="input hbox">
+<div class="prompt input_prompt">
+In&nbsp;[25]:
+</div>
+<div class="input_area box-flex1">
+<div class="highlight-ipynb"><pre class="ipynb"><span class="n">t2</span><span class="o">.</span><span class="n">v3</span>
+</pre></div>
+
+</div>
+</div>
+
+<div class="vbox output_wrapper">
+<div class="output vbox">
+
+
+<div class="hbox output_area"><div class="prompt output_prompt">
+    Out[25]:</div>
+<div class="box-flex1 output_subarea output_pyout">
+
+
+<pre>
+ref_0
+UnboundTable[table]
+  name: hamster
+  schema:
+    v1 : double
+    v2 : int32
+    v3 : string
+
+v3 = Column[array(string)] &apos;v3&apos; from table ref_0
+</pre>
+
+</div>
+</div>
+
+</div>
+</div>
+
+</div>
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>The numeric methods we used above are not even available on v3:</p>
+</div>
+<div class="cell border-box-sizing code_cell vbox">
+<div class="input hbox">
+<div class="prompt input_prompt">
+In&nbsp;[26]:
+</div>
+<div class="input_area box-flex1">
+<div class="highlight-ipynb"><pre class="ipynb"><span class="n">t2</span><span class="o">.</span><span class="n">v3</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+</pre></div>
+
+</div>
+</div>
+
+<div class="vbox output_wrapper">
+<div class="output vbox">
+
+
+<div class="hbox output_area"><div class="prompt"></div>
+<div class="box-flex1 output_subarea output_pyerr">
+<pre>
+<span class="ansired">---------------------------------------------------------------------------</span>
+<span class="ansired">AttributeError</span>                            Traceback (most recent call last)
+<span class="ansigreen">&lt;ipython-input-26-fbd74f99b121&gt;</span> in <span class="ansicyan">&lt;module&gt;</span><span class="ansiblue">()</span>
+<span class="ansigreen">----&gt; 1</span><span class="ansired"> </span>t2<span class="ansiblue">.</span>v3<span class="ansiblue">.</span>sum<span class="ansiblue">(</span><span class="ansiblue">)</span><span class="ansiblue"></span>
+
+<span class="ansired">AttributeError</span>: &apos;StringArray&apos; object has no attribute &apos;sum&apos;</pre>
+</div>
+</div>
+
+</div>
+</div>
+
+</div>
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>This constraint applies to all expressions. Suppose we casted <code>v1</code> to string; this would still be true:</p>
+</div>
+<div class="cell border-box-sizing code_cell vbox">
+<div class="input hbox">
+<div class="prompt input_prompt">
+In&nbsp;[27]:
+</div>
+<div class="input_area box-flex1">
+<div class="highlight-ipynb"><pre class="ipynb"><span class="n">t2</span><span class="o">.</span><span class="n">v1</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+</pre></div>
+
+</div>
+</div>
+
+<div class="vbox output_wrapper">
+<div class="output vbox">
+
+
+<div class="hbox output_area"><div class="prompt output_prompt">
+    Out[27]:</div>
+<div class="box-flex1 output_subarea output_pyout">
+
+
+<pre>
+ref_0
+UnboundTable[table]
+  name: hamster
+  schema:
+    v1 : double
+    v2 : int32
+    v3 : string
+
+sum = Sum[double]
+  v1 = Column[array(double)] &apos;v1&apos; from table ref_0
+  None
+</pre>
+
+</div>
+</div>
+
+</div>
+</div>
+
+</div>
+<div class="cell border-box-sizing code_cell vbox">
+<div class="input hbox">
+<div class="prompt input_prompt">
+In&nbsp;[28]:
+</div>
+<div class="input_area box-flex1">
+<div class="highlight-ipynb"><pre class="ipynb"><span class="n">t2</span><span class="o">.</span><span class="n">v1</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="s">&#39;string&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+</pre></div>
+
+</div>
+</div>
+
+<div class="vbox output_wrapper">
+<div class="output vbox">
+
+
+<div class="hbox output_area"><div class="prompt"></div>
+<div class="box-flex1 output_subarea output_pyerr">
+<pre>
+<span class="ansired">---------------------------------------------------------------------------</span>
+<span class="ansired">AttributeError</span>                            Traceback (most recent call last)
+<span class="ansigreen">&lt;ipython-input-28-b4e33ca864fd&gt;</span> in <span class="ansicyan">&lt;module&gt;</span><span class="ansiblue">()</span>
+<span class="ansigreen">----&gt; 1</span><span class="ansired"> </span>t2<span class="ansiblue">.</span>v1<span class="ansiblue">.</span>cast<span class="ansiblue">(</span><span class="ansiblue">&apos;string&apos;</span><span class="ansiblue">)</span><span class="ansiblue">.</span>sum<span class="ansiblue">(</span><span class="ansiblue">)</span><span class="ansiblue"></span>
+
+<span class="ansired">AttributeError</span>: &apos;StringArray&apos; object has no attribute &apos;sum&apos;</pre>
+</div>
+</div>
+
+</div>
+</div>
+
+</div>
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>In addition to not allowing you to call invalid instance methods, input arguments are all type-checked:</p>
+</div>
+<div class="cell border-box-sizing code_cell vbox">
+<div class="input hbox">
+<div class="prompt input_prompt">
+In&nbsp;[29]:
+</div>
+<div class="input_area box-flex1">
+<div class="highlight-ipynb"><pre class="ipynb"><span class="n">expr</span> <span class="o">=</span> <span class="n">t2</span><span class="o">.</span><span class="n">v1</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>  <span class="c"># valid</span>
+
+<span class="n">t2</span><span class="o">.</span><span class="n">v1</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="s">&#39;foo&#39;</span><span class="p">)</span>  <span class="c"># invalid</span>
+</pre></div>
+
+</div>
+</div>
+
+<div class="vbox output_wrapper">
+<div class="output vbox">
+
+
+<div class="hbox output_area"><div class="prompt"></div>
+<div class="box-flex1 output_subarea output_pyerr">
+<pre>
+<span class="ansired">---------------------------------------------------------------------------</span>
+<span class="ansired">IbisTypeError</span>                             Traceback (most recent call last)
+<span class="ansigreen">&lt;ipython-input-29-844feacfdc97&gt;</span> in <span class="ansicyan">&lt;module&gt;</span><span class="ansiblue">()</span>
+<span class="ansigreen">      1</span> expr <span class="ansiblue">=</span> t2<span class="ansiblue">.</span>v1<span class="ansiblue">.</span>round<span class="ansiblue">(</span><span class="ansicyan">2</span><span class="ansiblue">)</span>  <span class="ansired"># valid</span><span class="ansiblue"></span>
+<span class="ansigreen">      2</span> <span class="ansiblue"></span>
+<span class="ansigreen">----&gt; 3</span><span class="ansired"> </span>t2<span class="ansiblue">.</span>v1<span class="ansiblue">.</span>round<span class="ansiblue">(</span><span class="ansiblue">&apos;foo&apos;</span><span class="ansiblue">)</span>  <span class="ansired"># invalid</span><span class="ansiblue"></span>
+
+<span class="ansigreen">/Users/wes/code/ibis/ibis/expr/api.pyc</span> in <span class="ansicyan">round</span><span class="ansiblue">(arg, digits)</span>
+<span class="ansigreen">    955</span>         other numeric types<span class="ansiblue">:</span> double<span class="ansiblue"></span>
+<span class="ansigreen">    956</span>     &quot;&quot;&quot;
+<span class="ansigreen">--&gt; 957</span><span class="ansired">     </span>op <span class="ansiblue">=</span> _ops<span class="ansiblue">.</span>Round<span class="ansiblue">(</span>arg<span class="ansiblue">,</span> digits<span class="ansiblue">)</span><span class="ansiblue"></span>
+<span class="ansigreen">    958</span>     <span class="ansigreen">return</span> op<span class="ansiblue">.</span>to_expr<span class="ansiblue">(</span><span class="ansiblue">)</span><span class="ansiblue"></span>
+<span class="ansigreen">    959</span> <span class="ansiblue"></span>
+
+<span class="ansigreen">/Users/wes/code/ibis/ibis/expr/types.pyc</span> in <span class="ansicyan">__init__</span><span class="ansiblue">(self, *args)</span>
+<span class="ansigreen">    269</span> <span class="ansiblue"></span>
+<span class="ansigreen">    270</span>     <span class="ansigreen">def</span> __init__<span class="ansiblue">(</span>self<span class="ansiblue">,</span> <span class="ansiblue">*</span>args<span class="ansiblue">)</span><span class="ansiblue">:</span><span class="ansiblue"></span>
+<span class="ansigreen">--&gt; 271</span><span class="ansired">         </span>args <span class="ansiblue">=</span> self<span class="ansiblue">.</span>_validate_args<span class="ansiblue">(</span>args<span class="ansiblue">)</span><span class="ansiblue"></span>
+<span class="ansigreen">    272</span>         Node<span class="ansiblue">.</span>__init__<span class="ansiblue">(</span>self<span class="ansiblue">,</span> args<span class="ansiblue">)</span><span class="ansiblue"></span>
+<span class="ansigreen">    273</span> <span class="ansiblue"></span>
+
+<span class="ansigreen">/Users/wes/code/ibis/ibis/expr/types.pyc</span> in <span class="ansicyan">_validate_args</span><span class="ansiblue">(self, args)</span>
+<span class="ansigreen">    276</span>             <span class="ansigreen">return</span> args<span class="ansiblue"></span>
+<span class="ansigreen">    277</span> <span class="ansiblue"></span>
+<span class="ansigreen">--&gt; 278</span><span class="ansired">         </span><span class="ansigreen">return</span> self<span class="ansiblue">.</span>input_type<span class="ansiblue">.</span>validate<span class="ansiblue">(</span>args<span class="ansiblue">)</span><span class="ansiblue"></span>
+<span class="ansigreen">    279</span> <span class="ansiblue"></span>
+<span class="ansigreen">    280</span>     <span class="ansigreen">def</span> root_tables<span class="ansiblue">(</span>self<span class="ansiblue">)</span><span class="ansiblue">:</span><span class="ansiblue"></span>
+
+<span class="ansigreen">/Users/wes/code/ibis/ibis/expr/rules.pyc</span> in <span class="ansicyan">validate</span><span class="ansiblue">(self, args)</span>
+<span class="ansigreen">    345</span>             args <span class="ansiblue">=</span> list<span class="ansiblue">(</span>args<span class="ansiblue">)</span> <span class="ansiblue">+</span> <span class="ansiblue">[</span>t<span class="ansiblue">.</span>default <span class="ansigreen">for</span> t <span class="ansigreen">in</span> self<span class="ansiblue">.</span>types<span class="ansiblue">[</span>n<span class="ansiblue">:</span><span class="ansiblue">]</span><span class="ansiblue">]</span><span class="ansiblue"></span>
+<span class="ansigreen">    346</span> <span class="ansiblue"></span>
+<span class="ansigreen">--&gt; 347</span><span class="ansired">         </span><span class="ansigreen">return</span> self<span class="ansiblue">.</span>_validate<span class="ansiblue">(</span>args<span class="ansiblue">,</span> self<span class="ansiblue">.</span>types<span class="ansiblue">)</span><span class="ansiblue"></span>
+<span class="ansigreen">    348</span> <span class="ansiblue"></span>
+<span class="ansigreen">    349</span>     <span class="ansigreen">def</span> _validate<span class="ansiblue">(</span>self<span class="ansiblue">,</span> args<span class="ansiblue">,</span> types<span class="ansiblue">)</span><span class="ansiblue">:</span><span class="ansiblue"></span>
+
+<span class="ansigreen">/Users/wes/code/ibis/ibis/expr/rules.pyc</span> in <span class="ansicyan">_validate</span><span class="ansiblue">(self, args, types)</span>
+<span class="ansigreen">    356</span>                 msg = (&apos;Argument {0}: {1}&apos;.format(i, exc) +
+<span class="ansigreen">    357</span>                        &apos;\nArgument was: {0}&apos;.format(ir._safe_repr(args[i])))
+<span class="ansigreen">--&gt; 358</span><span class="ansired">                 </span><span class="ansigreen">raise</span> IbisTypeError<span class="ansiblue">(</span>msg<span class="ansiblue">)</span><span class="ansiblue"></span>
+<span class="ansigreen">    359</span> <span class="ansiblue"></span>
+<span class="ansigreen">    360</span>         <span class="ansigreen">return</span> clean_args<span class="ansiblue"></span>
+
+<span class="ansired">IbisTypeError</span>: Argument 1: not integer
+Argument was: &apos;foo&apos;</pre>
+</div>
+</div>
+
+</div>
+</div>
+
+</div>
+<div class="text_cell_render border-box-sizing rendered_html">
+<h2 id="expression-type-hierarchies">Expression type hierarchies</h2>
+<p>The user expression types inherit from a particular value type along with a shape type (table, array, or scalar).</p>
+<center>
+<img src="../images/int8value-mro.png"></img>
+</center>
+<p>Methods are shared amongst type classes, and the classes assist with type validation, implicit casts, and other internal matters in the DSL and SQL compiler toolchain.</p>
+</div>
+<div class="text_cell_render border-box-sizing rendered_html">
+<h2 id="some-ibis-and-blaze-dsl-comparisons">Some Ibis and Blaze DSL comparisons</h2>
+<p>Since DSLs are inherently nuanced things, the only real way to evaluate them fully is to try to solve <em>your problem</em> using one of them.</p>
+<p>Architectural similarities are interesting, but in my experience <strong>API design / usability</strong> and <strong>comprehensive solutions to use cases</strong> are the only things that users care about. Blaze today conflicts with my (definitely opinionated) API design preferences and my understanding of the needs of SQL users (the intended audience for Ibis). It was much simpler for me to design a solution from scratch (whose design can be quickly changed without project governance issues) that meets my target users' design and usability requirements.</p>
+<p>In an <a href="http://blog.ibis-project.org/other-compute-engines/">earlier post here</a>, I described how our priorities with Ibis are out of alignment with Blaze. I had a phone call with Continuum Analytics this past week to discuss Ibis and Blaze goals, use cases, and possible collaborations. They asked me for specific feedback on Blaze's API, so I'm digging in here to look closer.</p>
+</div>
+<div class="cell border-box-sizing code_cell vbox">
+<div class="input hbox">
+<div class="prompt input_prompt">
+In&nbsp;[30]:
+</div>
+<div class="input_area box-flex1">
+<div class="highlight-ipynb"><pre class="ipynb"><span class="kn">import</span> <span class="nn">blaze</span> <span class="kn">as</span> <span class="nn">bz</span>
+
+<span class="n">t</span> <span class="o">=</span> <span class="n">bz</span><span class="o">.</span><span class="n">TableSymbol</span><span class="p">(</span><span class="s">&#39;hamster&#39;</span><span class="p">,</span> <span class="s">&#39;{v1: float64, v2: int32, v3: string}&#39;</span><span class="p">)</span>
+<span class="n">t</span>
+</pre></div>
+
+</div>
+</div>
+
+<div class="vbox output_wrapper">
+<div class="output vbox">
+
+
+<div class="hbox output_area"><div class="prompt output_prompt">
+    Out[30]:</div>
+<div class="box-flex1 output_subarea output_pyout">
+
+<div class="output_html rendered_html">
+hamster
+</div>
+
+</div>
+</div>
+
+</div>
+</div>
+
+</div>
+<div class="cell border-box-sizing code_cell vbox">
+<div class="input hbox">
+<div class="prompt input_prompt">
+In&nbsp;[31]:
+</div>
+<div class="input_area box-flex1">
+<div class="highlight-ipynb"><pre class="ipynb"><span class="nb">type</span><span class="p">(</span><span class="n">t</span><span class="p">)</span>
+</pre></div>
+
+</div>
+</div>
+
+<div class="vbox output_wrapper">
+<div class="output vbox">
+
+
+<div class="hbox output_area"><div class="prompt output_prompt">
+    Out[31]:</div>
+<div class="box-flex1 output_subarea output_pyout">
+
+
+<pre>
+blaze.expr.expressions.Symbol
+</pre>
+
+</div>
+</div>
+
+</div>
+</div>
+
+</div>
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>Okay, how about the class hierarchy?</p>
+</div>
+<div class="cell border-box-sizing code_cell vbox">
+<div class="input hbox">
+<div class="prompt input_prompt">
+In&nbsp;[32]:
+</div>
+<div class="input_area box-flex1">
+<div class="highlight-ipynb"><pre class="ipynb"><span class="nb">type</span><span class="p">(</span><span class="n">t</span><span class="p">)</span><span class="o">.</span><span class="n">mro</span><span class="p">()</span>
+</pre></div>
+
+</div>
+</div>
+
+<div class="vbox output_wrapper">
+<div class="output vbox">
+
+
+<div class="hbox output_area"><div class="prompt output_prompt">
+    Out[32]:</div>
+<div class="box-flex1 output_subarea output_pyout">
+
+
+<pre>
+[blaze.expr.expressions.Symbol,
+ blaze.expr.expressions.Expr,
+ blaze.expr.core.Node,
+ object]
+</pre>
+
+</div>
+</div>
+
+</div>
+</div>
+
+</div>
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>Alright. You can find out what kind of expression you're dealing with by looking at the <code>dshape</code> attribute:</p>
+</div>
+<div class="cell border-box-sizing code_cell vbox">
+<div class="input hbox">
+<div class="prompt input_prompt">
+In&nbsp;[33]:
+</div>
+<div class="input_area box-flex1">
+<div class="highlight-ipynb"><pre class="ipynb"><span class="n">t</span><span class="o">.</span><span class="n">dshape</span>
+</pre></div>
+
+</div>
+</div>
+
+<div class="vbox output_wrapper">
+<div class="output vbox">
+
+
+<div class="hbox output_area"><div class="prompt output_prompt">
+    Out[33]:</div>
+<div class="box-flex1 output_subarea output_pyout">
+
+
+<pre>
+dshape(&quot;var * {v1: float64, v2: int32, v3: string}&quot;)
+</pre>
+
+</div>
+</div>
+
+</div>
+</div>
+
+</div>
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>This is very NumPy-like, which is good and bad for reasons I've cited.</p>
+<p>Let's look at a few simple expressions like the above:</p>
+</div>
+<div class="cell border-box-sizing code_cell vbox">
+<div class="input hbox">
+<div class="prompt input_prompt">
+In&nbsp;[34]:
+</div>
+<div class="input_area box-flex1">
+<div class="highlight-ipynb"><pre class="ipynb"><span class="n">expr</span> <span class="o">=</span> <span class="n">t</span><span class="o">.</span><span class="n">v1</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+</pre></div>
+
+</div>
+</div>
+
+</div>
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>In Ibis, this yields a <code>DoubleScalar</code>. Here it's a little different because there are no value types, only <code>Expr</code>:</p>
+</div>
+<div class="cell border-box-sizing code_cell vbox">
+<div class="input hbox">
+<div class="prompt input_prompt">
+In&nbsp;[35]:
+</div>
+<div class="input_area box-flex1">
+<div class="highlight-ipynb"><pre class="ipynb"><span class="n">expr</span>
+</pre></div>
+
+</div>
+</div>
+
+<div class="vbox output_wrapper">
+<div class="output vbox">
+
+
+<div class="hbox output_area"><div class="prompt output_prompt">
+    Out[35]:</div>
+<div class="box-flex1 output_subarea output_pyout">
+
+<div class="output_html rendered_html">
+sum(hamster.v1)
+</div>
+
+</div>
+</div>
+
+</div>
+</div>
+
+</div>
+<div class="cell border-box-sizing code_cell vbox">
+<div class="input hbox">
+<div class="prompt input_prompt">
+In&nbsp;[36]:
+</div>
+<div class="input_area box-flex1">
+<div class="highlight-ipynb"><pre class="ipynb"><span class="nb">type</span><span class="p">(</span><span class="n">expr</span><span class="p">)</span>
+</pre></div>
+
+</div>
+</div>
+
+<div class="vbox output_wrapper">
+<div class="output vbox">
+
+
+<div class="hbox output_area"><div class="prompt output_prompt">
+    Out[36]:</div>
+<div class="box-flex1 output_subarea output_pyout">
+
+
+<pre>
+blaze.expr.reductions.sum
+</pre>
+
+</div>
+</div>
+
+</div>
+</div>
+
+</div>
+<div class="cell border-box-sizing code_cell vbox">
+<div class="input hbox">
+<div class="prompt input_prompt">
+In&nbsp;[37]:
+</div>
+<div class="input_area box-flex1">
+<div class="highlight-ipynb"><pre class="ipynb"><span class="nb">type</span><span class="p">(</span><span class="n">expr</span><span class="p">)</span><span class="o">.</span><span class="n">mro</span><span class="p">()</span>
+</pre></div>
+
+</div>
+</div>
+
+<div class="vbox output_wrapper">
+<div class="output vbox">
+
+
+<div class="hbox output_area"><div class="prompt output_prompt">
+    Out[37]:</div>
+<div class="box-flex1 output_subarea output_pyout">
+
+
+<pre>
+[blaze.expr.reductions.sum,
+ blaze.expr.reductions.Reduction,
+ blaze.expr.expressions.Expr,
+ blaze.expr.core.Node,
+ object]
+</pre>
+
+</div>
+</div>
+
+</div>
+</div>
+
+</div>
+<div class="cell border-box-sizing code_cell vbox">
+<div class="input hbox">
+<div class="prompt input_prompt">
+In&nbsp;[38]:
+</div>
+<div class="input_area box-flex1">
+<div class="highlight-ipynb"><pre class="ipynb"><span class="n">expr</span><span class="o">.</span><span class="n">dshape</span>
+</pre></div>
+
+</div>
+</div>
+
+<div class="vbox output_wrapper">
+<div class="output vbox">
+
+
+<div class="hbox output_area"><div class="prompt output_prompt">
+    Out[38]:</div>
+<div class="box-flex1 output_subarea output_pyout">
+
+
+<pre>
+dshape(&quot;float64&quot;)
+</pre>
+
+</div>
+</div>
+
+</div>
+</div>
+
+</div>
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>You also can't do <code>sum</code> on a string:</p>
+</div>
+<div class="cell border-box-sizing code_cell vbox">
+<div class="input hbox">
+<div class="prompt input_prompt">
+In&nbsp;[39]:
+</div>
+<div class="input_area box-flex1">
+<div class="highlight-ipynb"><pre class="ipynb"><span class="n">t</span><span class="o">.</span><span class="n">v3</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+</pre></div>
+
+</div>
+</div>
+
+<div class="vbox output_wrapper">
+<div class="output vbox">
+
+
+<div class="hbox output_area"><div class="prompt"></div>
+<div class="box-flex1 output_subarea output_pyerr">
+<pre>
+<span class="ansired">---------------------------------------------------------------------------</span>
+<span class="ansired">AttributeError</span>                            Traceback (most recent call last)
+<span class="ansigreen">&lt;ipython-input-39-32d7bb6499a7&gt;</span> in <span class="ansicyan">&lt;module&gt;</span><span class="ansiblue">()</span>
+<span class="ansigreen">----&gt; 1</span><span class="ansired"> </span>t<span class="ansiblue">.</span>v3<span class="ansiblue">.</span>sum<span class="ansiblue">(</span><span class="ansiblue">)</span><span class="ansiblue"></span>
+
+<span class="ansigreen">/Users/wes/anaconda/envs/ibis-blog/lib/python2.7/site-packages/blaze/expr/expressions.pyc</span> in <span class="ansicyan">__getattr__</span><span class="ansiblue">(self, key)</span>
+<span class="ansigreen">    168</span>             <span class="ansigreen">pass</span><span class="ansiblue"></span>
+<span class="ansigreen">    169</span>         <span class="ansigreen">try</span><span class="ansiblue">:</span><span class="ansiblue"></span>
+<span class="ansigreen">--&gt; 170</span><span class="ansired">             </span>result <span class="ansiblue">=</span> object<span class="ansiblue">.</span>__getattribute__<span class="ansiblue">(</span>self<span class="ansiblue">,</span> key<span class="ansiblue">)</span><span class="ansiblue"></span>
+<span class="ansigreen">    171</span>         <span class="ansigreen">except</span> AttributeError<span class="ansiblue">:</span><span class="ansiblue"></span>
+<span class="ansigreen">    172</span>             fields = dict(zip(map(valid_identifier, self.fields),
+
+<span class="ansired">AttributeError</span>: &apos;Field&apos; object has no attribute &apos;sum&apos;</pre>
+</div>
+</div>
+
+</div>
+</div>
+
+</div>
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>Most methods in Blaze are not instance methods, and are instead found in <code>blaze.expr.functions</code>:</p>
+</div>
+<div class="cell border-box-sizing code_cell vbox">
+<div class="input hbox">
+<div class="prompt input_prompt">
+In&nbsp;[40]:
+</div>
+<div class="input_area box-flex1">
+<div class="highlight-ipynb"><pre class="ipynb"><span class="kn">import</span> <span class="nn">blaze.expr.functions</span> <span class="kn">as</span> <span class="nn">bzfunc</span>
+</pre></div>
+
+</div>
+</div>
+
+</div>
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>Sadly, things start going poorly when I make mistakes using functions in <code>bzfunc</code>:</p>
+</div>
+<div class="cell border-box-sizing code_cell vbox">
+<div class="input hbox">
+<div class="prompt input_prompt">
+In&nbsp;[41]:
+</div>
+<div class="input_area box-flex1">
+<div class="highlight-ipynb"><pre class="ipynb"><span class="n">expr</span> <span class="o">=</span> <span class="n">bzfunc</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">t</span><span class="o">.</span><span class="n">v3</span><span class="p">)</span>
+<span class="n">expr</span>
+</pre></div>
+
+</div>
+</div>
+
+<div class="vbox output_wrapper">
+<div class="output vbox">
+
+
+<div class="hbox output_area"><div class="prompt output_prompt">
+    Out[41]:</div>
+<div class="box-flex1 output_subarea output_pyout">
+
+<div class="output_html rendered_html">
+sum(hamster.v3)
+</div>
+
+</div>
+</div>
+
+</div>
+</div>
+
+</div>
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>Wait, wasn't <code>v3</code> a string?</p>
+</div>
+<div class="cell border-box-sizing code_cell vbox">
+<div class="input hbox">
+<div class="prompt input_prompt">
+In&nbsp;[42]:
+</div>
+<div class="input_area box-flex1">
+<div class="highlight-ipynb"><pre class="ipynb"><span class="n">expr</span><span class="o">.</span><span class="n">dshape</span>
+</pre></div>
+
+</div>
+</div>
+
+<div class="vbox output_wrapper">
+<div class="output vbox">
+
+
+<div class="hbox output_area"><div class="prompt"></div>
+<div class="box-flex1 output_subarea output_pyerr">
+<pre>
+<span class="ansired">---------------------------------------------------------------------------</span>
+<span class="ansired">AssertionError</span>                            Traceback (most recent call last)
+<span class="ansigreen">&lt;ipython-input-42-b75fb756f813&gt;</span> in <span class="ansicyan">&lt;module&gt;</span><span class="ansiblue">()</span>
+<span class="ansigreen">----&gt; 1</span><span class="ansired"> </span>expr<span class="ansiblue">.</span>dshape<span class="ansiblue"></span>
+
+<span class="ansigreen">/Users/wes/anaconda/envs/ibis-blog/lib/python2.7/site-packages/blaze/expr/reductions.pyc</span> in <span class="ansicyan">dshape</span><span class="ansiblue">(self)</span>
+<span class="ansigreen">     64</span>                           <span class="ansigreen">for</span> i<span class="ansiblue">,</span> d <span class="ansigreen">in</span> enumerate<span class="ansiblue">(</span>self<span class="ansiblue">.</span>_child<span class="ansiblue">.</span>shape<span class="ansiblue">)</span><span class="ansiblue"></span>
+<span class="ansigreen">     65</span>                           if i not in axis)
+<span class="ansigreen">---&gt; 66</span><span class="ansired">         </span><span class="ansigreen">return</span> DataShape<span class="ansiblue">(</span><span class="ansiblue">*</span><span class="ansiblue">(</span>shape <span class="ansiblue">+</span> <span class="ansiblue">(</span>self<span class="ansiblue">.</span>schema<span class="ansiblue">,</span><span class="ansiblue">)</span><span class="ansiblue">)</span><span class="ansiblue">)</span><span class="ansiblue"></span>
+<span class="ansigreen">     67</span> <span class="ansiblue"></span>
+<span class="ansigreen">     68</span>     <span class="ansiblue">@</span>property<span class="ansiblue"></span>
+
+<span class="ansigreen">/Users/wes/anaconda/envs/ibis-blog/lib/python2.7/site-packages/blaze/expr/reductions.pyc</span> in <span class="ansicyan">schema</span><span class="ansiblue">(self)</span>
+<span class="ansigreen">    115</span>     <span class="ansiblue">@</span>property<span class="ansiblue"></span>
+<span class="ansigreen">    116</span>     <span class="ansigreen">def</span> schema<span class="ansiblue">(</span>self<span class="ansiblue">)</span><span class="ansiblue">:</span><span class="ansiblue"></span>
+<span class="ansigreen">--&gt; 117</span><span class="ansired">         </span><span class="ansigreen">return</span> DataShape<span class="ansiblue">(</span>datashape<span class="ansiblue">.</span>maxtype<span class="ansiblue">(</span>super<span class="ansiblue">(</span>sum<span class="ansiblue">,</span> self<span class="ansiblue">)</span><span class="ansiblue">.</span>schema<span class="ansiblue">)</span><span class="ansiblue">)</span><span class="ansiblue"></span>
+<span class="ansigreen">    118</span> <span class="ansiblue"></span>
+<span class="ansigreen">    119</span> <span class="ansiblue"></span>
+
+<span class="ansigreen">/Users/wes/anaconda/envs/ibis-blog/lib/python2.7/site-packages/datashape/typesets.pyc</span> in <span class="ansicyan">maxtype</span><span class="ansiblue">(measure)</span>
+<span class="ansigreen">    182</span>     <span class="ansigreen">if</span> isoption<span class="ansiblue">:</span><span class="ansiblue"></span>
+<span class="ansigreen">    183</span>         measure <span class="ansiblue">=</span> measure<span class="ansiblue">.</span>ty<span class="ansiblue"></span>
+<span class="ansigreen">--&gt; 184</span><span class="ansired">     </span><span class="ansigreen">assert</span> matches_typeset<span class="ansiblue">(</span>measure<span class="ansiblue">,</span> scalar<span class="ansiblue">)</span><span class="ansiblue">,</span> <span class="ansiblue">&apos;measure must be numeric&apos;</span><span class="ansiblue"></span>
+<span class="ansigreen">    185</span> <span class="ansiblue"></span>
+<span class="ansigreen">    186</span>     <span class="ansigreen">if</span> measure <span class="ansiblue">==</span> bool_<span class="ansiblue">:</span><span class="ansiblue"></span>
+
+<span class="ansired">AssertionError</span>: measure must be numeric</pre>
+</div>
+</div>
+
+</div>
+</div>
+
+</div>
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>Let me try something else, like <code>sqrt</code>:</p>
+</div>
+<div class="cell border-box-sizing code_cell vbox">
+<div class="input hbox">
+<div class="prompt input_prompt">
+In&nbsp;[43]:
+</div>
+<div class="input_area box-flex1">
+<div class="highlight-ipynb"><pre class="ipynb"><span class="n">expr</span> <span class="o">=</span> <span class="n">bzfunc</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">t</span><span class="o">.</span><span class="n">v3</span><span class="p">)</span>
+<span class="n">expr</span><span class="o">.</span><span class="n">dshape</span>
+</pre></div>
+
+</div>
+</div>
+
+<div class="vbox output_wrapper">
+<div class="output vbox">
+
+
+<div class="hbox output_area"><div class="prompt output_prompt">
+    Out[43]:</div>
+<div class="box-flex1 output_subarea output_pyout">
+
+
+<pre>
+dshape(&quot;var * float64&quot;)
+</pre>
+
+</div>
+</div>
+
+</div>
+</div>
+
+</div>
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>So that's not good either. I couldn't find a <code>round</code> function. Let me try adding a double to a string:</p>
+</div>
+<div class="cell border-box-sizing code_cell vbox">
+<div class="input hbox">
+<div class="prompt input_prompt">
+In&nbsp;[44]:
+</div>
+<div class="input_area box-flex1">
+<div class="highlight-ipynb"><pre class="ipynb"><span class="n">expr</span> <span class="o">=</span> <span class="n">t</span><span class="o">.</span><span class="n">v1</span> <span class="o">+</span> <span class="n">t</span><span class="o">.</span><span class="n">v3</span>
+<span class="n">expr</span>
+</pre></div>
+
+</div>
+</div>
+
+<div class="vbox output_wrapper">
+<div class="output vbox">
+
+
+<div class="hbox output_area"><div class="prompt output_prompt">
+    Out[44]:</div>
+<div class="box-flex1 output_subarea output_pyout">
+
+<div class="output_html rendered_html">
+hamster.v1 + hamster.v3
+</div>
+
+</div>
+</div>
+
+</div>
+</div>
+
+</div>
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>I don't think that should work either. Also:</p>
+</div>
+<div class="cell border-box-sizing code_cell vbox">
+<div class="input hbox">
+<div class="prompt input_prompt">
+In&nbsp;[45]:
+</div>
+<div class="input_area box-flex1">
+<div class="highlight-ipynb"><pre class="ipynb"><span class="n">expr</span><span class="o">.</span><span class="n">dshape</span>
+</pre></div>
+
+</div>
+</div>
+
+<div class="vbox output_wrapper">
+<div class="output vbox">
+
+
+<div class="hbox output_area"><div class="prompt output_prompt">
+    Out[45]:</div>
+<div class="box-flex1 output_subarea output_pyout">
+
+
+<pre>
+dshape(&quot;var * object&quot;)
+</pre>
+
+</div>
+</div>
+
+</div>
+</div>
+
+</div>
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>Invalid table-level expressions are also not problematic at all:</p>
+</div>
+<div class="cell border-box-sizing code_cell vbox">
+<div class="input hbox">
+<div class="prompt input_prompt">
+In&nbsp;[46]:
+</div>
+<div class="input_area box-flex1">
+<div class="highlight-ipynb"><pre class="ipynb"><span class="n">expr</span> <span class="o">=</span> <span class="n">t</span><span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">v3</span> <span class="o">&gt;</span> <span class="mi">5</span><span class="p">]</span>
+</pre></div>
+
+</div>
+</div>
+
+</div>
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>I also find the spread of functionality between <code>blaze.expr.functions</code> and instance methods to conflict with my sensibilities (which are admittedly highly subjective and pandas-influenced). For example, a float scalar object has some functions but others are found elsewhere.</p>
+</div>
+<div class="cell border-box-sizing code_cell vbox">
+<div class="input hbox">
+<div class="prompt input_prompt">
+In&nbsp;[47]:
+</div>
+<div class="input_area box-flex1">
+<div class="highlight-ipynb"><pre class="ipynb"><span class="n">expr</span> <span class="o">=</span> <span class="n">bzfunc</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">t</span><span class="o">.</span><span class="n">v1</span><span class="p">)</span>
+<span class="k">print</span><span class="p">(</span><span class="n">expr</span><span class="o">.</span><span class="n">dshape</span><span class="p">)</span>
+<span class="p">[</span><span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">dir</span><span class="p">(</span><span class="n">expr</span><span class="p">)</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">x</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s">&#39;_&#39;</span><span class="p">)]</span>
+</pre></div>
+
+</div>
+</div>
+
+<div class="vbox output_wrapper">
+<div class="output vbox">
+
+
+<div class="hbox output_area"><div class="prompt"></div>
+<div class="box-flex1 output_subarea output_stream output_stdout">
+<pre>
+float64
+
+</pre>
+</div>
+</div>
+
+<div class="hbox output_area"><div class="prompt output_prompt">
+    Out[47]:</div>
+<div class="box-flex1 output_subarea output_pyout">
+
+
+<pre>
+[&apos;apply&apos;,
+ &apos;axis&apos;,
+ &apos;coerce&apos;,
+ &apos;dshape&apos;,
+ &apos;fields&apos;,
+ &apos;isidentical&apos;,
+ &apos;isnan&apos;,
+ &apos;keepdims&apos;,
+ &apos;label&apos;,
+ &apos;map&apos;,
+ &apos;relabel&apos;,
+ &apos;schema&apos;,
+ &apos;symbol&apos;,
+ &apos;truncate&apos;,
+ &apos;utcfromtimestamp&apos;]
+</pre>
+
+</div>
+</div>
+
+</div>
+</div>
+
+</div>
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>It's really just a difference in taste, but I prefer to have all my valid functions available as instance methods so that I can compose function chains more easily as seen above.</p>
+<p>I wanted to try to reproduce examples on top of SQLite from my <a href="http://blog.ibis-project.org/sqlite-crunchbase-quickstart/">last blog post</a> but I found too much missing functionality, to name a couple specific things:</p>
+<ul>
+<li>case statements / if-else expressions. This also makes <code>bucket</code> not possible to implement</li>
+<li><code>fillna</code> function</li>
+</ul>
+<p>Also, the way that joins work in Blaze is very un-SQL like (replicates pandas, in essence). This makes many SQL queries with joins hard to port. Check out the <a href="http://docs.ibis-project.org/tutorial.html">Ibis tutorial</a> for more on that.</p>
+</div></p></div>
+    <footer>
+<p class="meta">
+  <span class="byline author vcard">
+    Posted by <span class="fn">
+        <a href="http://blog.ibis-project.org/author/wes-mckinney.html">Wes McKinney</a>
+    </span>
+  </span>
+<time datetime="2015-09-13T10:00:00-07:00" pubdate>Sun 13 September 2015</time>
+</p><div class="sharing">
+  <a href="http://twitter.com/share" class="twitter-share-button" data-url="http://blog.ibis-project.org/design-types-operations/" data-via="wesmckinn" data-counturl="http://blog.ibis-project.org/design-types-operations/" >Tweet</a>
+</div>    </footer>
+  </article>
+
 </div>
 <aside class="sidebar">
   <section>

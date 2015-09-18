@@ -1,5 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
-<feed xmlns="http://www.w3.org/2005/Atom"><title>Ibis Project Blog</title><link href="http://blog.ibis-project.org/" rel="alternate"></link><link href="/atom.xml" rel="self"></link><id>http://blog.ibis-project.org/</id><updated>2015-09-13T10:00:00-07:00</updated><entry><title>Ibis Design: Expression types and operation mechanics</title><link href="http://blog.ibis-project.org/design-types-operations/" rel="alternate"></link><updated>2015-09-13T10:00:00-07:00</updated><author><name>Wes McKinney</name></author><id>tag:blog.ibis-project.org,2015-09-13:design-types-operations/</id><summary type="html">&lt;p&gt;
+<feed xmlns="http://www.w3.org/2005/Atom"><title>Ibis Project Blog</title><link href="http://blog.ibis-project.org/" rel="alternate"></link><link href="/atom.xml" rel="self"></link><id>http://blog.ibis-project.org/</id><updated>2015-09-17T10:00:00-07:00</updated><entry><title>Ibis for SQL Programmers Guide</title><link href="http://blog.ibis-project.org/ibis-for-sql-programmers/" rel="alternate"></link><updated>2015-09-17T10:00:00-07:00</updated><author><name>Wes McKinney</name></author><id>tag:blog.ibis-project.org,2015-09-17:ibis-for-sql-programmers/</id><summary type="html">
+
+&lt;p&gt;Yesterday, on the Ibis documentation I published the first version of &lt;a href="http://docs.ibis-project.org/sql.html" target="_blank"&gt;Ibis for SQL Programmers&lt;/a&gt;, a practical guide to how SQL concepts
+map onto the Ibis DSL. To be clear, all of your data will stay in a SQL engine,
+but you can interact with it using Ibis using Python code that can be simpler
+to write and also more composable and reusable. Also, Ibis statically analyzes
+types and expressions as you go, catching a large class of common mistakes made
+during SQL programming.&lt;/p&gt;
+&lt;p&gt;This will be an evolving document, so if you find something that you use
+commonly in SQL and would like to see it added, please &lt;a href="https://github.com/cloudera/ibis/issues" target="_blank"&gt;reach out to us&lt;/a&gt; on the project issue tracker.&lt;/p&gt;
+</summary></entry><entry><title>Ibis Design: Expression types and operation mechanics</title><link href="http://blog.ibis-project.org/design-types-operations/" rel="alternate"></link><updated>2015-09-13T10:00:00-07:00</updated><author><name>Wes McKinney</name></author><id>tag:blog.ibis-project.org,2015-09-13:design-types-operations/</id><summary type="html">&lt;p&gt;
 &lt;div class="text_cell_render border-box-sizing rendered_html"&gt;
 
 &lt;p&gt;This blog post describes Ibis's expression type system and how its DSL (domain-specific language) operations work. It's intended for curious users or developers of the project.&lt;/p&gt;

@@ -1,5 +1,33 @@
 <?xml version="1.0" encoding="utf-8"?>
-<feed xmlns="http://www.w3.org/2005/Atom"><title>Ibis Project Blog</title><link href="http://blog.ibis-project.org/" rel="alternate"></link><link href="/atom.xml" rel="self"></link><id>http://blog.ibis-project.org/</id><updated>2015-09-17T10:00:00-07:00</updated><entry><title>Ibis for SQL Programmers Guide</title><link href="http://blog.ibis-project.org/ibis-for-sql-programmers/" rel="alternate"></link><updated>2015-09-17T10:00:00-07:00</updated><author><name>Wes McKinney</name></author><id>tag:blog.ibis-project.org,2015-09-17:ibis-for-sql-programmers/</id><summary type="html">
+<feed xmlns="http://www.w3.org/2005/Atom"><title>Ibis Project Blog</title><link href="http://blog.ibis-project.org/" rel="alternate"></link><link href="/atom.xml" rel="self"></link><id>http://blog.ibis-project.org/</id><updated>2015-12-01T05:00:00-08:00</updated><entry><title>Ibis 0.6: Expanded Impala support, better pandas integration</title><link href="http://blog.ibis-project.org/release-0.6/" rel="alternate"></link><updated>2015-12-01T05:00:00-08:00</updated><author><name>Wes McKinney</name></author><id>tag:blog.ibis-project.org,2015-12-01:release-0.6/</id><summary type="html">
+
+&lt;p&gt;Ibis 0.6.0 has been released! This release brings substantial new functionality
+for Impala users; see the &lt;a href="http://docs.ibis-project.org/impala.html" target="_blank"&gt;Using Ibis with Impala guide&lt;/a&gt;
+for a deep dive on these features. These enable Ibis to solve many data
+management problems beyond the analytical SQL capabilities exposed through Ibis
+expressions.&lt;/p&gt;
+&lt;p&gt;Some highlights of the new functionality include:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;Create tables and insert into existing tables directly from pandas DataFrame
+  objects&lt;/li&gt;
+&lt;li&gt;Inspect a variety of table and partition metadata in a user-friendly manner&lt;/li&gt;
+&lt;li&gt;Comprehensive partitioned table support&lt;/li&gt;
+&lt;li&gt;Modify table and partition metadata&lt;/li&gt;
+&lt;li&gt;Set session options such as Parquet compression codec&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Several bugs were fixed as well.&lt;/p&gt;
+&lt;p&gt;The upcoming roadmap will feature Impala's nested types support and expanded
+SQL system coverage.&lt;/p&gt;
+
+
+&lt;p&gt;Thanks to all who contributed patches:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span class="nv"&gt;$ &lt;/span&gt;git log v0.5.0..v0.6.0 --pretty&lt;span class="o"&gt;=&lt;/span&gt;format:%aN &lt;span class="p"&gt;|&lt;/span&gt; sort &lt;span class="p"&gt;|&lt;/span&gt; uniq -c &lt;span class="p"&gt;|&lt;/span&gt; sort -rn
+  &lt;span class="m"&gt;46&lt;/span&gt; Wes McKinney
+   &lt;span class="m"&gt;3&lt;/span&gt; Uri Laserson
+   &lt;span class="m"&gt;1&lt;/span&gt; Phillip Cloud
+   &lt;span class="m"&gt;1&lt;/span&gt; mariusvniekerk
+   &lt;span class="m"&gt;1&lt;/span&gt; Kristopher Overholt
+&lt;/pre&gt;&lt;/div&gt;</summary></entry><entry><title>Ibis for SQL Programmers Guide</title><link href="http://blog.ibis-project.org/ibis-for-sql-programmers/" rel="alternate"></link><updated>2015-09-17T10:00:00-07:00</updated><author><name>Wes McKinney</name></author><id>tag:blog.ibis-project.org,2015-09-17:ibis-for-sql-programmers/</id><summary type="html">
 
 &lt;p&gt;Yesterday, on the Ibis documentation I published the first version of &lt;a href="http://docs.ibis-project.org/sql.html" target="_blank"&gt;Ibis for SQL Programmers&lt;/a&gt;, a practical guide to how SQL concepts
 map onto the Ibis DSL. To be clear, all of your data will stay in a SQL engine,

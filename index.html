@@ -1791,6 +1791,39 @@ jQuery(document).ready(function($) {
   		<article>
 <header>
       <h1 class="entry-title">
+        <a href="http://blog.ibis-project.org/release-0.6/">Ibis 0.6: Expanded Impala support, better pandas integration</a>
+      </h1>
+    <p class="meta">
+<time datetime="2015-12-01T05:00:00-08:00" pubdate>Tue 01 December 2015</time>    </p>
+</header>
+
+  <div class="entry-content">
+
+<p>Ibis 0.6.0 has been released! This release brings substantial new functionality
+for Impala users; see the <a href="http://docs.ibis-project.org/impala.html" target="_blank">Using Ibis with Impala guide</a>
+for a deep dive on these features. These enable Ibis to solve many data
+management problems beyond the analytical SQL capabilities exposed through Ibis
+expressions.</p>
+<p>Some highlights of the new functionality include:</p>
+<ul>
+<li>Create tables and insert into existing tables directly from pandas DataFrame
+  objects</li>
+<li>Inspect a variety of table and partition metadata in a user-friendly manner</li>
+<li>Comprehensive partitioned table support</li>
+<li>Modify table and partition metadata</li>
+<li>Set session options such as Parquet compression codec</li>
+</ul>
+<p>Several bugs were fixed as well.</p>
+<p>The upcoming roadmap will feature Impala's nested types support and expanded
+SQL system coverage.</p>
+</div>
+  <footer>
+    <a rel="full-article" href="http://blog.ibis-project.org/release-0.6/">Read On &crarr;</a>
+  </footer>
+  		</article>
+  		<article>
+<header>
+      <h1 class="entry-title">
         <a href="http://blog.ibis-project.org/ibis-for-sql-programmers/">Ibis for SQL Programmers Guide</a>
       </h1>
     <p class="meta">
@@ -1979,30 +2012,8 @@ other systems and what that might mean for the actual users.</p>
     <a rel="full-article" href="http://blog.ibis-project.org/other-compute-engines/">Read On &crarr;</a>
   </footer>
   		</article>
-  		<article>
-<header>
-      <h1 class="entry-title">
-        <a href="http://blog.ibis-project.org/hello-world/">Hello World</a>
-      </h1>
-    <p class="meta">
-<time datetime="2015-07-23T19:41:00-07:00" pubdate>Thu 23 July 2015</time>    </p>
-</header>
-
-  <div class="entry-content">
-
-<p>Welcome to the Ibis project blog. As the project develops we'll post here
-periodically with:</p>
-<ul>
-<li>Applications and use cases</li>
-<li>Development updates and release notes</li>
-<li>Details on project internals and design</li>
-<li>Updates from Impala development and the broader community</li>
-<li>Thought pieces on the Big Data and Python ecosystems</li>
-</ul>
-<p>I'm looking forward to the journey; it's going to be really exciting.</p>
-</div>
-  		</article>
 <div class="pagination">
+    <a class="prev" href="http://blog.ibis-project.org/index2.html">&larr; Older</a>
 
   <br />
 </div></div>
@@ -2010,6 +2021,9 @@ periodically with:</p>
   <section>
     <h1>Recent Posts</h1>
     <ul id="recent_posts">
+      <li class="post">
+          <a href="http://blog.ibis-project.org/release-0.6/">Ibis 0.6: Expanded Impala support, better pandas integration</a>
+      </li>
       <li class="post">
           <a href="http://blog.ibis-project.org/ibis-for-sql-programmers/">Ibis for SQL Programmers Guide</a>
       </li>
@@ -2021,9 +2035,6 @@ periodically with:</p>
       </li>
       <li class="post">
           <a href="http://blog.ibis-project.org/release-0.5/">Ibis 0.5: SQLite, Python 3, and more</a>
-      </li>
-      <li class="post">
-          <a href="http://blog.ibis-project.org/design-composability/">Ibis expressions: Pythonic composability and evaluation</a>
       </li>
     </ul>
   </section>

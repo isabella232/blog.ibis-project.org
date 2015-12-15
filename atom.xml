@@ -12,7 +12,9 @@ works.&lt;/p&gt;
 &lt;p&gt;Since Kudu, a native C++ storage engine, now builds on OS X, I'm writing this
 blog using the Kudu client on OS X, so now is a great time for developers on
 both OS X and Linux to get involved with developing Python tools for Kudu.&lt;/p&gt;
-&lt;p&gt;Using Impala on OS X is in the works, see the &lt;a href="https://issues.cloudera.org/browse/IMPALA-2761"&gt;issue tracker&lt;/a&gt; for more.&lt;/p&gt;
+&lt;p&gt;Using Impala on OS X is in the works, see the &lt;a href="https://issues.cloudera.org/browse/IMPALA-2761"&gt;issue tracker&lt;/a&gt; for more. As
+soon as we can, we'll provide a combined Kudu/Impala DMG installer for
+installing the environment locally on Mac computers.&lt;/p&gt;
 &lt;!--
 If you have XCode installed, you can follow these steps to get going:
 

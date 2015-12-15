@@ -1791,6 +1791,42 @@ jQuery(document).ready(function($) {
   		<article>
 <header>
       <h1 class="entry-title">
+        <a href="http://blog.ibis-project.org/kudu-impala-ibis/">Interactive Analytics on Dynamic Big Data in Python using Kudu, Impala, and Ibis</a>
+      </h1>
+    <p class="meta">
+<time datetime="2015-12-14T08:00:00-08:00" pubdate>Mon 14 December 2015</time>    </p>
+</header>
+
+  <div class="entry-content">
+
+<p>The new <a href="http://getkudu.io">Apache Kudu (incubating)</a> columnar storage engine together with
+<a href="http://impala.io">Apache Impala (incubating)</a> interactive SQL engine enable a new fully open
+source big data architecture for data that is arriving and changing very
+quickly. By integrating Kudu and Impala with Ibis, this functionality is now
+available to Python programmers with an easy-to-use pandas-like API.</p>
+<p>I spent this last week expanding the Kudu Python client (a Cython wrapper for
+the C++ client API) and adding initial integration with Ibis. While my <a href="http://gerrit.cloudera.org:8080/#/c/1593/">Kudu patch</a> is still in code review, I will give you a preview here of how it all
+works.</p>
+<p>Since Kudu, a native C++ storage engine, now builds on OS X, I'm writing this
+blog using the Kudu client on OS X, so now is a great time for developers on
+both OS X and Linux to get involved with developing Python tools for Kudu.</p>
+<p>Using Impala on OS X is in the works, see the <a href="https://issues.cloudera.org/browse/IMPALA-2761">issue tracker</a> for more.</p>
+<!--
+If you have XCode installed, you can follow these steps to get going:
+
+wzxhzdk:0
+
+-->
+
+<p>Read on for more about Kudu and a full stack demo.</p>
+</div>
+  <footer>
+    <a rel="full-article" href="http://blog.ibis-project.org/kudu-impala-ibis/">Read On &crarr;</a>
+  </footer>
+  		</article>
+  		<article>
+<header>
+      <h1 class="entry-title">
         <a href="http://blog.ibis-project.org/release-0.6/">Ibis 0.6: Expanded Impala support, better pandas integration</a>
       </h1>
     <p class="meta">
@@ -1993,25 +2029,6 @@ Ibis on SQLite with the <a href="http://blog.ibis-project.org/pages/data.html">n
     <a rel="full-article" href="http://blog.ibis-project.org/design-modeling-analytics-1/">Read On &crarr;</a>
   </footer>
   		</article>
-  		<article>
-<header>
-      <h1 class="entry-title">
-        <a href="http://blog.ibis-project.org/other-compute-engines/">Using other compute engines with Ibis</a>
-      </h1>
-    <p class="meta">
-<time datetime="2015-08-02T22:22:00-07:00" pubdate>Sun 02 August 2015</time>    </p>
-</header>
-
-  <div class="entry-content">
-
-<p>Several people have asked me about using Ibis with execution engines other than
-Impala. The purpose of this post is to explain how one can make Ibis work with
-other systems and what that might mean for the actual users.</p>
-</div>
-  <footer>
-    <a rel="full-article" href="http://blog.ibis-project.org/other-compute-engines/">Read On &crarr;</a>
-  </footer>
-  		</article>
 <div class="pagination">
     <a class="prev" href="http://blog.ibis-project.org/index2.html">&larr; Older</a>
 
@@ -2021,6 +2038,9 @@ other systems and what that might mean for the actual users.</p>
   <section>
     <h1>Recent Posts</h1>
     <ul id="recent_posts">
+      <li class="post">
+          <a href="http://blog.ibis-project.org/kudu-impala-ibis/">Interactive Analytics on Dynamic Big Data in Python using Kudu, Impala, and Ibis</a>
+      </li>
       <li class="post">
           <a href="http://blog.ibis-project.org/release-0.6/">Ibis 0.6: Expanded Impala support, better pandas integration</a>
       </li>
@@ -2032,9 +2052,6 @@ other systems and what that might mean for the actual users.</p>
       </li>
       <li class="post">
           <a href="http://blog.ibis-project.org/sqlite-crunchbase-quickstart/">Quickstart on Crunchbase analysis using Ibis and SQLite</a>
-      </li>
-      <li class="post">
-          <a href="http://blog.ibis-project.org/release-0.5/">Ibis 0.5: SQLite, Python 3, and more</a>
       </li>
     </ul>
   </section>

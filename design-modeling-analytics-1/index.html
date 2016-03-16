@@ -1600,8 +1600,10 @@ h1:hover .anchor-link,h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anch
 .highlight-ipynb .err { border: 1px solid #FF0000 } /* Error */
 .highlight-ipynb .k { color: #008000; font-weight: bold } /* Keyword */
 .highlight-ipynb .o { color: #666666 } /* Operator */
+.highlight-ipynb .ch { color: #408080; font-style: italic } /* Comment.Hashbang */
 .highlight-ipynb .cm { color: #408080; font-style: italic } /* Comment.Multiline */
 .highlight-ipynb .cp { color: #BC7A00 } /* Comment.Preproc */
+.highlight-ipynb .cpf { color: #408080; font-style: italic } /* Comment.PreprocFile */
 .highlight-ipynb .c1 { color: #408080; font-style: italic } /* Comment.Single */
 .highlight-ipynb .cs { color: #408080; font-style: italic } /* Comment.Special */
 .highlight-ipynb .gd { color: #A00000 } /* Generic.Deleted */
@@ -1810,12 +1812,12 @@ jQuery(document).ready(function($) {
 <div class="text_cell_render border-box-sizing rendered_html">
 <h2 id="case-study-the-topk-operation"><a href="topkcasestudy"></a> Case Study: The TopK Operation</h2>
 <p>We've all been there; you have some higher cardinality category and you wish to restrict your analysis to a fixed subset of values according to a ranking that you devise. If you're using pandas, you might do something like:</p>
-<div class="sourceCode"><pre class="sourceCode python"><code class="sourceCode python">K <span class="op">=</span> <span class="dv">5</span>
+<pre class="sourceCode python"><code class="sourceCode python">K = <span class="dv">5</span>
 
-avg_value <span class="op">=</span> data.groupby(<span class="st">&#39;category&#39;</span>).value.mean()
-top_categories <span class="op">=</span> avg_value.order(ascending<span class="op">=</span><span class="va">False</span>)[:K].index
+avg_value = data.groupby(<span class="st">&#39;category&#39;</span>).value.mean()
+top_categories = avg_value.order(ascending=<span class="ot">False</span>)[:K].index
 
-filtered_data <span class="op">=</span> data[data.category.isin(top_categories)]</code></pre></div>
+filtered_data = data[data.category.isin(top_categories)]</code></pre>
 <p>Let's look at a concrete example using both Ibis and SQL. I'm using the now-classic <a href="http://blog.ibis-project.org/pages/data.html">airlines dataset</a> in Parquet format.</p>
 </div>
 <div class="cell border-box-sizing code_cell vbox">
@@ -1824,16 +1826,16 @@ filtered_data <span class="op">=</span> data[data.category.isin(top_categories)]
 In&nbsp;[1]:
 </div>
 <div class="input_area box-flex1">
-<div class="highlight-ipynb"><pre class="ipynb"><span class="kn">import</span> <span class="nn">ibis</span>
+<div class="highlight-ipynb"><pre class="ipynb"><span></span><span class="kn">import</span> <span class="nn">ibis</span>
 
 <span class="n">ibis</span><span class="o">.</span><span class="n">options</span><span class="o">.</span><span class="n">interactive</span> <span class="o">=</span> <span class="bp">True</span>
 
-<span class="n">hdfs</span> <span class="o">=</span> <span class="n">ibis</span><span class="o">.</span><span class="n">hdfs_connect</span><span class="p">(</span><span class="s">&#39;bottou01.sjc.cloudera.com&#39;</span><span class="p">)</span>
-<span class="n">con</span> <span class="o">=</span> <span class="n">ibis</span><span class="o">.</span><span class="n">impala</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="s">&#39;bottou01.sjc.cloudera.com&#39;</span><span class="p">,</span> <span class="n">hdfs_client</span><span class="o">=</span><span class="n">hdfs</span><span class="p">)</span>
+<span class="n">hdfs</span> <span class="o">=</span> <span class="n">ibis</span><span class="o">.</span><span class="n">hdfs_connect</span><span class="p">(</span><span class="s1">&#39;bottou01.sjc.cloudera.com&#39;</span><span class="p">)</span>
+<span class="n">con</span> <span class="o">=</span> <span class="n">ibis</span><span class="o">.</span><span class="n">impala</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="s1">&#39;bottou01.sjc.cloudera.com&#39;</span><span class="p">,</span> <span class="n">hdfs_client</span><span class="o">=</span><span class="n">hdfs</span><span class="p">)</span>
 
-<span class="n">airlines</span> <span class="o">=</span> <span class="n">con</span><span class="o">.</span><span class="n">parquet_file</span><span class="p">(</span><span class="s">&#39;/user/wesm/airlines-parquet&#39;</span><span class="p">,</span> <span class="n">persist</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> 
-                            <span class="n">name</span><span class="o">=</span><span class="s">&#39;airlines_parquet&#39;</span><span class="p">,</span> <span class="n">database</span><span class="o">=</span><span class="s">&#39;wes&#39;</span><span class="p">)</span>
-<span class="c"># airlines.compute_stats()</span>
+<span class="n">airlines</span> <span class="o">=</span> <span class="n">con</span><span class="o">.</span><span class="n">parquet_file</span><span class="p">(</span><span class="s1">&#39;/user/wesm/airlines-parquet&#39;</span><span class="p">,</span> <span class="n">persist</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> 
+                            <span class="n">name</span><span class="o">=</span><span class="s1">&#39;airlines_parquet&#39;</span><span class="p">,</span> <span class="n">database</span><span class="o">=</span><span class="s1">&#39;wes&#39;</span><span class="p">)</span>
+<span class="c1"># airlines.compute_stats()</span>
 </pre></div>
 
 </div>
@@ -1849,13 +1851,13 @@ In&nbsp;[1]:
 In&nbsp;[2]:
 </div>
 <div class="input_area box-flex1">
-<div class="highlight-ipynb"><pre class="ipynb"><span class="n">query</span> <span class="o">=</span> <span class="s">&quot;&quot;&quot;</span>
-<span class="s">SELECT origin, count(*) as `nrows`</span>
-<span class="s">FROM wes.airlines_parquet</span>
-<span class="s">GROUP BY 1</span>
-<span class="s">ORDER BY nrows DESC</span>
-<span class="s">LIMIT 5</span>
-<span class="s">&quot;&quot;&quot;</span>
+<div class="highlight-ipynb"><pre class="ipynb"><span></span><span class="n">query</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">SELECT origin, count(*) as `nrows`</span>
+<span class="s2">FROM wes.airlines_parquet</span>
+<span class="s2">GROUP BY 1</span>
+<span class="s2">ORDER BY nrows DESC</span>
+<span class="s2">LIMIT 5</span>
+<span class="s2">&quot;&quot;&quot;</span>
 <span class="n">expr</span> <span class="o">=</span> <span class="n">con</span><span class="o">.</span><span class="n">sql</span><span class="p">(</span><span class="n">query</span><span class="p">)</span>
 <span class="n">expr</span>
 </pre></div>
@@ -1941,10 +1943,10 @@ GROUP BY 1</code></pre>
 In&nbsp;[3]:
 </div>
 <div class="input_area box-flex1">
-<div class="highlight-ipynb"><pre class="ipynb"><span class="n">top_origins</span> <span class="o">=</span> <span class="p">(</span><span class="n">airlines</span>
-               <span class="o">.</span><span class="n">group_by</span><span class="p">(</span><span class="s">&#39;origin&#39;</span><span class="p">)</span>
-               <span class="o">.</span><span class="n">aggregate</span><span class="p">(</span><span class="n">airlines</span><span class="o">.</span><span class="n">count</span><span class="p">()</span><span class="o">.</span><span class="n">name</span><span class="p">(</span><span class="s">&#39;nrows&#39;</span><span class="p">))</span>
-               <span class="o">.</span><span class="n">sort_by</span><span class="p">(</span><span class="n">ibis</span><span class="o">.</span><span class="n">desc</span><span class="p">(</span><span class="s">&#39;nrows&#39;</span><span class="p">))</span>
+<div class="highlight-ipynb"><pre class="ipynb"><span></span><span class="n">top_origins</span> <span class="o">=</span> <span class="p">(</span><span class="n">airlines</span>
+               <span class="o">.</span><span class="n">group_by</span><span class="p">(</span><span class="s1">&#39;origin&#39;</span><span class="p">)</span>
+               <span class="o">.</span><span class="n">aggregate</span><span class="p">(</span><span class="n">airlines</span><span class="o">.</span><span class="n">count</span><span class="p">()</span><span class="o">.</span><span class="n">name</span><span class="p">(</span><span class="s1">&#39;nrows&#39;</span><span class="p">))</span>
+               <span class="o">.</span><span class="n">sort_by</span><span class="p">(</span><span class="n">ibis</span><span class="o">.</span><span class="n">desc</span><span class="p">(</span><span class="s1">&#39;nrows&#39;</span><span class="p">))</span>
                <span class="o">.</span><span class="n">limit</span><span class="p">(</span><span class="mi">5</span><span class="p">))</span>
 <span class="n">top_origins</span><span class="o">.</span><span class="n">execute</span><span class="p">()</span>
 </pre></div>
@@ -2017,15 +2019,15 @@ In&nbsp;[3]:
 In&nbsp;[4]:
 </div>
 <div class="input_area box-flex1">
-<div class="highlight-ipynb"><pre class="ipynb"><span class="c"># Replace nulls with 0</span>
-<span class="n">avg_delay</span> <span class="o">=</span> <span class="n">airlines</span><span class="o">.</span><span class="n">arrdelay</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">name</span><span class="p">(</span><span class="s">&#39;avg_delay&#39;</span><span class="p">)</span>
+<div class="highlight-ipynb"><pre class="ipynb"><span></span><span class="c1"># Replace nulls with 0</span>
+<span class="n">avg_delay</span> <span class="o">=</span> <span class="n">airlines</span><span class="o">.</span><span class="n">arrdelay</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">name</span><span class="p">(</span><span class="s1">&#39;avg_delay&#39;</span><span class="p">)</span>
 
 <span class="n">subset_airlines</span> <span class="o">=</span> <span class="n">airlines</span><span class="p">[</span><span class="n">airlines</span><span class="o">.</span><span class="n">origin</span><span class="o">.</span><span class="n">isin</span><span class="p">(</span><span class="n">top_origins</span><span class="o">.</span><span class="n">origin</span><span class="p">)]</span>
                     
 <span class="n">avg_delay_subset</span> <span class="o">=</span> <span class="p">(</span><span class="n">subset_airlines</span>
-                    <span class="o">.</span><span class="n">group_by</span><span class="p">(</span><span class="s">&#39;dest&#39;</span><span class="p">)</span>
+                    <span class="o">.</span><span class="n">group_by</span><span class="p">(</span><span class="s1">&#39;dest&#39;</span><span class="p">)</span>
                     <span class="o">.</span><span class="n">aggregate</span><span class="p">(</span><span class="n">avg_delay</span><span class="p">)</span>
-                    <span class="o">.</span><span class="n">sort_by</span><span class="p">(</span><span class="n">ibis</span><span class="o">.</span><span class="n">desc</span><span class="p">(</span><span class="s">&#39;avg_delay&#39;</span><span class="p">))</span>
+                    <span class="o">.</span><span class="n">sort_by</span><span class="p">(</span><span class="n">ibis</span><span class="o">.</span><span class="n">desc</span><span class="p">(</span><span class="s1">&#39;avg_delay&#39;</span><span class="p">))</span>
                     <span class="o">.</span><span class="n">limit</span><span class="p">(</span><span class="mi">10</span><span class="p">))</span>
 <span class="n">avg_delay_subset</span><span class="o">.</span><span class="n">execute</span><span class="p">()</span>
 </pre></div>
@@ -2123,7 +2125,7 @@ In&nbsp;[4]:
 In&nbsp;[5]:
 </div>
 <div class="input_area box-flex1">
-<div class="highlight-ipynb"><pre class="ipynb"><span class="n">top_origins</span> <span class="o">=</span> <span class="n">airlines</span><span class="o">.</span><span class="n">origin</span><span class="o">.</span><span class="n">topk</span><span class="p">(</span><span class="mi">5</span><span class="p">)</span>
+<div class="highlight-ipynb"><pre class="ipynb"><span></span><span class="n">top_origins</span> <span class="o">=</span> <span class="n">airlines</span><span class="o">.</span><span class="n">origin</span><span class="o">.</span><span class="n">topk</span><span class="p">(</span><span class="mi">5</span><span class="p">)</span>
 </pre></div>
 
 </div>
@@ -2139,7 +2141,7 @@ In&nbsp;[5]:
 In&nbsp;[6]:
 </div>
 <div class="input_area box-flex1">
-<div class="highlight-ipynb"><pre class="ipynb"><span class="n">top_origins</span><span class="o">.</span><span class="n">execute</span><span class="p">()</span>
+<div class="highlight-ipynb"><pre class="ipynb"><span></span><span class="n">top_origins</span><span class="o">.</span><span class="n">execute</span><span class="p">()</span>
 </pre></div>
 
 </div>
@@ -2210,10 +2212,10 @@ In&nbsp;[6]:
 In&nbsp;[7]:
 </div>
 <div class="input_area box-flex1">
-<div class="highlight-ipynb"><pre class="ipynb"><span class="n">expr</span> <span class="o">=</span> <span class="p">(</span><span class="n">airlines</span><span class="p">[</span><span class="n">top_origins</span><span class="p">]</span>
-        <span class="o">.</span><span class="n">group_by</span><span class="p">(</span><span class="s">&#39;dest&#39;</span><span class="p">)</span>
+<div class="highlight-ipynb"><pre class="ipynb"><span></span><span class="n">expr</span> <span class="o">=</span> <span class="p">(</span><span class="n">airlines</span><span class="p">[</span><span class="n">top_origins</span><span class="p">]</span>
+        <span class="o">.</span><span class="n">group_by</span><span class="p">(</span><span class="s1">&#39;dest&#39;</span><span class="p">)</span>
         <span class="o">.</span><span class="n">aggregate</span><span class="p">(</span><span class="n">avg_delay</span><span class="p">)</span>
-        <span class="o">.</span><span class="n">sort_by</span><span class="p">(</span><span class="n">ibis</span><span class="o">.</span><span class="n">desc</span><span class="p">(</span><span class="s">&#39;avg_delay&#39;</span><span class="p">))</span>
+        <span class="o">.</span><span class="n">sort_by</span><span class="p">(</span><span class="n">ibis</span><span class="o">.</span><span class="n">desc</span><span class="p">(</span><span class="s1">&#39;avg_delay&#39;</span><span class="p">))</span>
         <span class="o">.</span><span class="n">limit</span><span class="p">(</span><span class="mi">10</span><span class="p">))</span>
 <span class="n">expr</span><span class="o">.</span><span class="n">execute</span><span class="p">()</span>
 </pre></div>
@@ -2311,7 +2313,7 @@ In&nbsp;[7]:
 In&nbsp;[8]:
 </div>
 <div class="input_area box-flex1">
-<div class="highlight-ipynb"><pre class="ipynb"><span class="nb">type</span><span class="p">(</span><span class="n">top_origins</span><span class="p">)</span>
+<div class="highlight-ipynb"><pre class="ipynb"><span></span><span class="nb">type</span><span class="p">(</span><span class="n">top_origins</span><span class="p">)</span>
 </pre></div>
 
 </div>
@@ -2346,7 +2348,7 @@ ibis.expr.operations.TopKExpr
 In&nbsp;[9]:
 </div>
 <div class="input_area box-flex1">
-<div class="highlight-ipynb"><pre class="ipynb"><span class="n">airlines</span><span class="o">.</span><span class="n">origin</span><span class="o">.</span><span class="n">topk</span><span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="n">by</span><span class="o">=</span><span class="n">avg_delay</span><span class="p">)</span><span class="o">.</span><span class="n">execute</span><span class="p">()</span>
+<div class="highlight-ipynb"><pre class="ipynb"><span></span><span class="n">airlines</span><span class="o">.</span><span class="n">origin</span><span class="o">.</span><span class="n">topk</span><span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="n">by</span><span class="o">=</span><span class="n">avg_delay</span><span class="p">)</span><span class="o">.</span><span class="n">execute</span><span class="p">()</span>
 </pre></div>
 
 </div>
@@ -2417,8 +2419,8 @@ In&nbsp;[9]:
 In&nbsp;[10]:
 </div>
 <div class="input_area box-flex1">
-<div class="highlight-ipynb"><pre class="ipynb"><span class="k">def</span> <span class="nf">avg_delay</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
-    <span class="k">return</span> <span class="n">x</span><span class="o">.</span><span class="n">arrdelay</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">name</span><span class="p">(</span><span class="s">&#39;avg_delay&#39;</span><span class="p">)</span>
+<div class="highlight-ipynb"><pre class="ipynb"><span></span><span class="k">def</span> <span class="nf">avg_delay</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">x</span><span class="o">.</span><span class="n">arrdelay</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">name</span><span class="p">(</span><span class="s1">&#39;avg_delay&#39;</span><span class="p">)</span>
     
 <span class="n">expr</span> <span class="o">=</span> <span class="n">airlines</span><span class="p">[</span><span class="n">top_origins</span><span class="p">]</span><span class="o">.</span><span class="n">dest</span><span class="o">.</span><span class="n">topk</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="n">by</span><span class="o">=</span><span class="n">avg_delay</span><span class="p">)</span>
 <span class="n">expr</span><span class="o">.</span><span class="n">execute</span><span class="p">()</span>
@@ -2520,7 +2522,7 @@ In&nbsp;[10]:
 In&nbsp;[11]:
 </div>
 <div class="input_area box-flex1">
-<div class="highlight-ipynb"><pre class="ipynb"><span class="n">airlines</span><span class="o">.</span><span class="n">arrdelay</span><span class="o">.</span><span class="n">summary</span><span class="p">()</span>
+<div class="highlight-ipynb"><pre class="ipynb"><span></span><span class="n">airlines</span><span class="o">.</span><span class="n">arrdelay</span><span class="o">.</span><span class="n">summary</span><span class="p">()</span>
 </pre></div>
 
 </div>
@@ -2553,13 +2555,13 @@ In&nbsp;[11]:
 In&nbsp;[12]:
 </div>
 <div class="input_area box-flex1">
-<div class="highlight-ipynb"><pre class="ipynb"><span class="n">delay_buckets</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">30</span><span class="p">,</span> <span class="mi">60</span><span class="p">,</span> <span class="mi">120</span><span class="p">]</span>
+<div class="highlight-ipynb"><pre class="ipynb"><span></span><span class="n">delay_buckets</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">30</span><span class="p">,</span> <span class="mi">60</span><span class="p">,</span> <span class="mi">120</span><span class="p">]</span>
 
 <span class="nb">bin</span> <span class="o">=</span> <span class="p">(</span><span class="n">airlines</span><span class="o">.</span><span class="n">arrdelay</span>
        <span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
        <span class="o">.</span><span class="n">bucket</span><span class="p">(</span><span class="n">delay_buckets</span><span class="p">,</span> 
                <span class="n">include_over</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
-               <span class="n">include_under</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span><span class="o">.</span><span class="n">name</span><span class="p">(</span><span class="s">&#39;delay_bin&#39;</span><span class="p">))</span>
+               <span class="n">include_under</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span><span class="o">.</span><span class="n">name</span><span class="p">(</span><span class="s1">&#39;delay_bin&#39;</span><span class="p">))</span>
 
 <span class="n">delay_summary</span> <span class="o">=</span> <span class="n">airlines</span><span class="o">.</span><span class="n">group_by</span><span class="p">(</span><span class="nb">bin</span><span class="p">)</span><span class="o">.</span><span class="n">arrdelay</span><span class="o">.</span><span class="n">summary</span><span class="p">()</span>
 <span class="n">delay_summary</span>
@@ -2606,13 +2608,13 @@ In&nbsp;[12]:
 In&nbsp;[13]:
 </div>
 <div class="input_area box-flex1">
-<div class="highlight-ipynb"><pre class="ipynb"><span class="n">bin_name</span> <span class="o">=</span> <span class="p">(</span><span class="n">delay_summary</span><span class="o">.</span><span class="n">delay_bin</span>
-            <span class="o">.</span><span class="n">label</span><span class="p">([</span><span class="s">&#39;On time&#39;</span><span class="p">,</span> <span class="s">&#39;Less then 30 min&#39;</span><span class="p">,</span>
-                    <span class="s">&#39;30 min to 1 hour&#39;</span><span class="p">,</span> 
-                    <span class="s">&#39;1 to 2 hours&#39;</span><span class="p">,</span>
-                    <span class="s">&#39;More than 2 hours&#39;</span><span class="p">]))</span>
+<div class="highlight-ipynb"><pre class="ipynb"><span></span><span class="n">bin_name</span> <span class="o">=</span> <span class="p">(</span><span class="n">delay_summary</span><span class="o">.</span><span class="n">delay_bin</span>
+            <span class="o">.</span><span class="n">label</span><span class="p">([</span><span class="s1">&#39;On time&#39;</span><span class="p">,</span> <span class="s1">&#39;Less then 30 min&#39;</span><span class="p">,</span>
+                    <span class="s1">&#39;30 min to 1 hour&#39;</span><span class="p">,</span> 
+                    <span class="s1">&#39;1 to 2 hours&#39;</span><span class="p">,</span>
+                    <span class="s1">&#39;More than 2 hours&#39;</span><span class="p">]))</span>
 <span class="n">expr</span> <span class="o">=</span> <span class="n">delay_summary</span><span class="o">.</span><span class="n">mutate</span><span class="p">(</span><span class="n">bin_name</span><span class="o">=</span><span class="n">bin_name</span><span class="p">)</span>
-<span class="n">expr</span><span class="o">.</span><span class="n">sort_by</span><span class="p">(</span><span class="s">&#39;delay_bin&#39;</span><span class="p">)</span>
+<span class="n">expr</span><span class="o">.</span><span class="n">sort_by</span><span class="p">(</span><span class="s1">&#39;delay_bin&#39;</span><span class="p">)</span>
 </pre></div>
 
 </div>
@@ -2672,6 +2674,9 @@ In&nbsp;[13]:
     <h1>Recent Posts</h1>
     <ul id="recent_posts">
       <li class="post">
+          <a href="http://blog.ibis-project.org/release-0.7/">Ibis 0.7: Kudu-Impala integration, SQL compiler improvements</a>
+      </li>
+      <li class="post">
           <a href="http://blog.ibis-project.org/kudu-impala-ibis/">Interactive Analytics on Dynamic Big Data in Python using Kudu, Impala, and Ibis</a>
       </li>
       <li class="post">
@@ -2682,9 +2687,6 @@ In&nbsp;[13]:
       </li>
       <li class="post">
           <a href="http://blog.ibis-project.org/design-types-operations/">Ibis Design: Expression types and operation mechanics</a>
-      </li>
-      <li class="post">
-          <a href="http://blog.ibis-project.org/sqlite-crunchbase-quickstart/">Quickstart on Crunchbase analysis using Ibis and SQLite</a>
       </li>
     </ul>
   </section>
@@ -2708,7 +2710,7 @@ In&nbsp;[13]:
 </aside>    </div>
   </div>
   <footer role="contentinfo"><p>
-    Copyright &copy;  2015  Cloudera, Inc. &mdash;
+    Copyright &copy;  2015&ndash;2016  Cloudera, Inc. &mdash;
   <span class="credit">Powered by <a href="http://getpelican.com">Pelican</a></span>
 </p></footer>
   <script src="http://blog.ibis-project.org/theme/js/modernizr-2.0.js"></script>

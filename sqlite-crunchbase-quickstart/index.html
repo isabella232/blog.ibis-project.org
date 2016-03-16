@@ -1600,8 +1600,10 @@ h1:hover .anchor-link,h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anch
 .highlight-ipynb .err { border: 1px solid #FF0000 } /* Error */
 .highlight-ipynb .k { color: #008000; font-weight: bold } /* Keyword */
 .highlight-ipynb .o { color: #666666 } /* Operator */
+.highlight-ipynb .ch { color: #408080; font-style: italic } /* Comment.Hashbang */
 .highlight-ipynb .cm { color: #408080; font-style: italic } /* Comment.Multiline */
 .highlight-ipynb .cp { color: #BC7A00 } /* Comment.Preproc */
+.highlight-ipynb .cpf { color: #408080; font-style: italic } /* Comment.PreprocFile */
 .highlight-ipynb .c1 { color: #408080; font-style: italic } /* Comment.Single */
 .highlight-ipynb .cs { color: #408080; font-style: italic } /* Comment.Special */
 .highlight-ipynb .gd { color: #A00000 } /* Generic.Deleted */
@@ -1804,7 +1806,7 @@ expressions on data in SQLite database files. Since SQLite ships with Python,
 this is the easiest way to get up and running using the project because you
 don't have to install or administer a database at all.</p>
 <p>To get going, install Ibis if you have not already</p>
-<div class="highlight"><pre>pip install ibis-framework
+<div class="highlight"><pre><span></span>pip install ibis-framework
 </pre></div>
 
 
@@ -1822,10 +1824,10 @@ don't have to install or administer a database at all.</p>
 In&nbsp;[1]:
 </div>
 <div class="input_area box-flex1">
-<div class="highlight-ipynb"><pre class="ipynb"><span class="kn">import</span> <span class="nn">ibis</span>
+<div class="highlight-ipynb"><pre class="ipynb"><span></span><span class="kn">import</span> <span class="nn">ibis</span>
 <span class="n">ibis</span><span class="o">.</span><span class="n">options</span><span class="o">.</span><span class="n">interactive</span> <span class="o">=</span> <span class="bp">True</span>
 
-<span class="n">con</span> <span class="o">=</span> <span class="n">ibis</span><span class="o">.</span><span class="n">sqlite</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="s">&#39;crunchbase.db&#39;</span><span class="p">)</span>
+<span class="n">con</span> <span class="o">=</span> <span class="n">ibis</span><span class="o">.</span><span class="n">sqlite</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="s1">&#39;crunchbase.db&#39;</span><span class="p">)</span>
 </pre></div>
 
 </div>
@@ -1841,7 +1843,7 @@ In&nbsp;[1]:
 In&nbsp;[2]:
 </div>
 <div class="input_area box-flex1">
-<div class="highlight-ipynb"><pre class="ipynb"><span class="n">con</span><span class="o">.</span><span class="n">list_tables</span><span class="p">()</span>
+<div class="highlight-ipynb"><pre class="ipynb"><span></span><span class="n">con</span><span class="o">.</span><span class="n">list_tables</span><span class="p">()</span>
 </pre></div>
 
 </div>
@@ -1876,7 +1878,7 @@ In&nbsp;[2]:
 In&nbsp;[3]:
 </div>
 <div class="input_area box-flex1">
-<div class="highlight-ipynb"><pre class="ipynb"><span class="n">rounds</span> <span class="o">=</span> <span class="n">con</span><span class="o">.</span><span class="n">table</span><span class="p">(</span><span class="s">&#39;rounds&#39;</span><span class="p">)</span>
+<div class="highlight-ipynb"><pre class="ipynb"><span></span><span class="n">rounds</span> <span class="o">=</span> <span class="n">con</span><span class="o">.</span><span class="n">table</span><span class="p">(</span><span class="s1">&#39;rounds&#39;</span><span class="p">)</span>
 <span class="n">rounds</span><span class="o">.</span><span class="n">info</span><span class="p">()</span>
 </pre></div>
 
@@ -1927,7 +1929,7 @@ raised_amount_usd        double  73406
 In&nbsp;[4]:
 </div>
 <div class="input_area box-flex1">
-<div class="highlight-ipynb"><pre class="ipynb"><span class="n">rounds</span><span class="o">.</span><span class="n">funding_round_type</span><span class="o">.</span><span class="n">value_counts</span><span class="p">()</span>
+<div class="highlight-ipynb"><pre class="ipynb"><span></span><span class="n">rounds</span><span class="o">.</span><span class="n">funding_round_type</span><span class="o">.</span><span class="n">value_counts</span><span class="p">()</span>
 </pre></div>
 
 </div>
@@ -1977,10 +1979,10 @@ In&nbsp;[4]:
 In&nbsp;[5]:
 </div>
 <div class="input_area box-flex1">
-<div class="highlight-ipynb"><pre class="ipynb"><span class="n">acquisitions</span> <span class="o">=</span> <span class="n">con</span><span class="o">.</span><span class="n">table</span><span class="p">(</span><span class="s">&#39;acquisitions&#39;</span><span class="p">)</span>
+<div class="highlight-ipynb"><pre class="ipynb"><span></span><span class="n">acquisitions</span> <span class="o">=</span> <span class="n">con</span><span class="o">.</span><span class="n">table</span><span class="p">(</span><span class="s1">&#39;acquisitions&#39;</span><span class="p">)</span>
 <span class="n">expr</span> <span class="o">=</span> <span class="p">(</span><span class="n">acquisitions</span><span class="o">.</span><span class="n">price_amount</span>
         <span class="o">.</span><span class="n">isnull</span><span class="p">()</span>
-        <span class="o">.</span><span class="n">name</span><span class="p">(</span><span class="s">&#39;has_price&#39;</span><span class="p">)</span>
+        <span class="o">.</span><span class="n">name</span><span class="p">(</span><span class="s1">&#39;has_price&#39;</span><span class="p">)</span>
         <span class="o">.</span><span class="n">value_counts</span><span class="p">())</span>
 <span class="n">expr</span>
 </pre></div>
@@ -2019,7 +2021,7 @@ In&nbsp;[5]:
 In&nbsp;[6]:
 </div>
 <div class="input_area box-flex1">
-<div class="highlight-ipynb"><pre class="ipynb"><span class="n">df</span> <span class="o">=</span> <span class="n">expr</span><span class="o">.</span><span class="n">execute</span><span class="p">()</span>
+<div class="highlight-ipynb"><pre class="ipynb"><span></span><span class="n">df</span> <span class="o">=</span> <span class="n">expr</span><span class="o">.</span><span class="n">execute</span><span class="p">()</span>
 <span class="n">df</span>
 </pre></div>
 
@@ -2082,7 +2084,7 @@ In&nbsp;[6]:
 In&nbsp;[7]:
 </div>
 <div class="input_area box-flex1">
-<div class="highlight-ipynb"><pre class="ipynb"><span class="nb">type</span><span class="p">(</span><span class="n">expr</span><span class="p">)</span>
+<div class="highlight-ipynb"><pre class="ipynb"><span></span><span class="nb">type</span><span class="p">(</span><span class="n">expr</span><span class="p">)</span>
 </pre></div>
 
 </div>
@@ -2114,7 +2116,7 @@ ibis.expr.types.TableExpr
 In&nbsp;[8]:
 </div>
 <div class="input_area box-flex1">
-<div class="highlight-ipynb"><pre class="ipynb"><span class="n">companies</span> <span class="o">=</span> <span class="n">con</span><span class="o">.</span><span class="n">table</span><span class="p">(</span><span class="s">&#39;companies&#39;</span><span class="p">)</span>
+<div class="highlight-ipynb"><pre class="ipynb"><span></span><span class="n">companies</span> <span class="o">=</span> <span class="n">con</span><span class="o">.</span><span class="n">table</span><span class="p">(</span><span class="s1">&#39;companies&#39;</span><span class="p">)</span>
 
 <span class="n">expr</span> <span class="o">=</span> <span class="n">companies</span><span class="o">.</span><span class="n">funding_total_usd</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
 <span class="nb">type</span><span class="p">(</span><span class="n">expr</span><span class="p">)</span>
@@ -2149,7 +2151,7 @@ ibis.expr.types.DoubleScalar
 In&nbsp;[9]:
 </div>
 <div class="input_area box-flex1">
-<div class="highlight-ipynb"><pre class="ipynb"><span class="n">expr</span><span class="o">.</span><span class="n">execute</span><span class="p">()</span>
+<div class="highlight-ipynb"><pre class="ipynb"><span></span><span class="n">expr</span><span class="o">.</span><span class="n">execute</span><span class="p">()</span>
 </pre></div>
 
 </div>
@@ -2186,7 +2188,7 @@ In&nbsp;[9]:
 In&nbsp;[10]:
 </div>
 <div class="input_area box-flex1">
-<div class="highlight-ipynb"><pre class="ipynb"><span class="n">funded_at</span> <span class="o">=</span> <span class="n">rounds</span><span class="o">.</span><span class="n">funded_at</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="s">&#39;timestamp&#39;</span><span class="p">)</span>
+<div class="highlight-ipynb"><pre class="ipynb"><span></span><span class="n">funded_at</span> <span class="o">=</span> <span class="n">rounds</span><span class="o">.</span><span class="n">funded_at</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="s1">&#39;timestamp&#39;</span><span class="p">)</span>
 <span class="n">funded_at</span><span class="o">.</span><span class="n">year</span><span class="p">()</span><span class="o">.</span><span class="n">value_counts</span><span class="p">()</span>
 </pre></div>
 
@@ -2272,7 +2274,7 @@ In&nbsp;[10]:
 In&nbsp;[11]:
 </div>
 <div class="input_area box-flex1">
-<div class="highlight-ipynb"><pre class="ipynb"><span class="n">rounds</span><span class="o">.</span><span class="n">funding_round_code</span><span class="o">.</span><span class="n">value_counts</span><span class="p">()</span>
+<div class="highlight-ipynb"><pre class="ipynb"><span></span><span class="n">rounds</span><span class="o">.</span><span class="n">funding_round_code</span><span class="o">.</span><span class="n">value_counts</span><span class="p">()</span>
 </pre></div>
 
 </div>
@@ -2313,12 +2315,12 @@ In&nbsp;[11]:
 In&nbsp;[12]:
 </div>
 <div class="input_area box-flex1">
-<div class="highlight-ipynb"><pre class="ipynb"><span class="n">year</span> <span class="o">=</span> <span class="n">funded_at</span><span class="o">.</span><span class="n">year</span><span class="p">()</span><span class="o">.</span><span class="n">name</span><span class="p">(</span><span class="s">&#39;year&#39;</span><span class="p">)</span>
+<div class="highlight-ipynb"><pre class="ipynb"><span></span><span class="n">year</span> <span class="o">=</span> <span class="n">funded_at</span><span class="o">.</span><span class="n">year</span><span class="p">()</span><span class="o">.</span><span class="n">name</span><span class="p">(</span><span class="s1">&#39;year&#39;</span><span class="p">)</span>
 
-<span class="n">expr</span> <span class="o">=</span> <span class="p">(</span><span class="n">rounds</span><span class="p">[(</span><span class="n">rounds</span><span class="o">.</span><span class="n">funding_round_type</span> <span class="o">==</span> <span class="s">&#39;venture&#39;</span><span class="p">)</span> <span class="o">&amp;</span>
+<span class="n">expr</span> <span class="o">=</span> <span class="p">(</span><span class="n">rounds</span><span class="p">[(</span><span class="n">rounds</span><span class="o">.</span><span class="n">funding_round_type</span> <span class="o">==</span> <span class="s1">&#39;venture&#39;</span><span class="p">)</span> <span class="o">&amp;</span>
                <span class="n">year</span><span class="o">.</span><span class="n">between</span><span class="p">(</span><span class="mi">2000</span><span class="p">,</span> <span class="mi">2015</span><span class="p">)</span> <span class="o">&amp;</span>
                <span class="n">rounds</span><span class="o">.</span><span class="n">funding_round_code</span><span class="o">.</span><span class="n">notnull</span><span class="p">()]</span>
-        <span class="o">.</span><span class="n">group_by</span><span class="p">([</span><span class="n">year</span><span class="p">,</span> <span class="s">&#39;funding_round_code&#39;</span><span class="p">])</span>
+        <span class="o">.</span><span class="n">group_by</span><span class="p">([</span><span class="n">year</span><span class="p">,</span> <span class="s1">&#39;funding_round_code&#39;</span><span class="p">])</span>
         <span class="o">.</span><span class="n">size</span><span class="p">())</span>
 
 <span class="n">results</span> <span class="o">=</span> <span class="n">expr</span><span class="o">.</span><span class="n">execute</span><span class="p">()</span>
@@ -2429,8 +2431,8 @@ In&nbsp;[12]:
 In&nbsp;[13]:
 </div>
 <div class="input_area box-flex1">
-<div class="highlight-ipynb"><pre class="ipynb"><span class="n">pivoted</span> <span class="o">=</span> <span class="p">(</span><span class="n">results</span><span class="o">.</span><span class="n">set_index</span><span class="p">([</span><span class="s">&#39;year&#39;</span><span class="p">,</span> <span class="s">&#39;funding_round_code&#39;</span><span class="p">])</span>
-           <span class="o">.</span><span class="n">unstack</span><span class="p">(</span><span class="s">&#39;funding_round_code&#39;</span><span class="p">)</span>
+<div class="highlight-ipynb"><pre class="ipynb"><span></span><span class="n">pivoted</span> <span class="o">=</span> <span class="p">(</span><span class="n">results</span><span class="o">.</span><span class="n">set_index</span><span class="p">([</span><span class="s1">&#39;year&#39;</span><span class="p">,</span> <span class="s1">&#39;funding_round_code&#39;</span><span class="p">])</span>
+           <span class="o">.</span><span class="n">unstack</span><span class="p">(</span><span class="s1">&#39;funding_round_code&#39;</span><span class="p">)</span>
            <span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="mi">0</span><span class="p">))</span>
 <span class="n">pivoted</span>
 </pre></div>
@@ -2675,7 +2677,7 @@ In&nbsp;[13]:
 In&nbsp;[14]:
 </div>
 <div class="input_area box-flex1">
-<div class="highlight-ipynb"><pre class="ipynb"><span class="n">funding_buckets</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1000000</span><span class="p">,</span> <span class="mi">10000000</span><span class="p">,</span> <span class="mi">50000000</span><span class="p">,</span> <span class="mi">100000000</span><span class="p">,</span> 
+<div class="highlight-ipynb"><pre class="ipynb"><span></span><span class="n">funding_buckets</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1000000</span><span class="p">,</span> <span class="mi">10000000</span><span class="p">,</span> <span class="mi">50000000</span><span class="p">,</span> <span class="mi">100000000</span><span class="p">,</span> 
                    <span class="mi">500000000</span><span class="p">,</span> <span class="mi">1000000000</span><span class="p">]</span>
 
 <span class="n">bucket</span> <span class="o">=</span> <span class="p">(</span><span class="n">companies</span>
@@ -2724,11 +2726,11 @@ In&nbsp;[14]:
 In&nbsp;[15]:
 </div>
 <div class="input_area box-flex1">
-<div class="highlight-ipynb"><pre class="ipynb"><span class="n">bucket_names</span> <span class="o">=</span> <span class="p">[</span><span class="s">&#39;0 to 1m&#39;</span><span class="p">,</span> <span class="s">&#39;1m to 10m&#39;</span><span class="p">,</span> <span class="s">&#39;10m to 50m&#39;</span><span class="p">,</span> 
-                <span class="s">&#39;50m to 100m&#39;</span><span class="p">,</span> <span class="s">&#39;100m to 500m&#39;</span><span class="p">,</span>
-                <span class="s">&#39;500m to 1b&#39;</span><span class="p">,</span> <span class="s">&#39;Over 1b&#39;</span><span class="p">]</span>
+<div class="highlight-ipynb"><pre class="ipynb"><span></span><span class="n">bucket_names</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;0 to 1m&#39;</span><span class="p">,</span> <span class="s1">&#39;1m to 10m&#39;</span><span class="p">,</span> <span class="s1">&#39;10m to 50m&#39;</span><span class="p">,</span> 
+                <span class="s1">&#39;50m to 100m&#39;</span><span class="p">,</span> <span class="s1">&#39;100m to 500m&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;500m to 1b&#39;</span><span class="p">,</span> <span class="s1">&#39;Over 1b&#39;</span><span class="p">]</span>
 
-<span class="n">counts</span> <span class="o">=</span> <span class="n">bucket</span><span class="o">.</span><span class="n">name</span><span class="p">(</span><span class="s">&#39;bucket&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">value_counts</span><span class="p">()</span>
+<span class="n">counts</span> <span class="o">=</span> <span class="n">bucket</span><span class="o">.</span><span class="n">name</span><span class="p">(</span><span class="s1">&#39;bucket&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">value_counts</span><span class="p">()</span>
 <span class="n">labeled</span> <span class="o">=</span> <span class="n">counts</span><span class="o">.</span><span class="n">bucket</span><span class="o">.</span><span class="n">label</span><span class="p">(</span><span class="n">bucket_names</span><span class="p">)</span>
 <span class="n">with_names</span> <span class="o">=</span> <span class="n">counts</span><span class="o">.</span><span class="n">mutate</span><span class="p">(</span><span class="n">bucket_name</span><span class="o">=</span><span class="n">labeled</span><span class="p">)</span>
 <span class="n">with_names</span>
@@ -2774,7 +2776,7 @@ In&nbsp;[15]:
 In&nbsp;[16]:
 </div>
 <div class="input_area box-flex1">
-<div class="highlight-ipynb"><pre class="ipynb"><span class="n">metrics</span> <span class="o">=</span> <span class="p">(</span><span class="n">companies</span><span class="o">.</span><span class="n">group_by</span><span class="p">(</span><span class="n">bucket</span><span class="o">.</span><span class="n">name</span><span class="p">(</span><span class="s">&#39;bucket&#39;</span><span class="p">))</span>
+<div class="highlight-ipynb"><pre class="ipynb"><span></span><span class="n">metrics</span> <span class="o">=</span> <span class="p">(</span><span class="n">companies</span><span class="o">.</span><span class="n">group_by</span><span class="p">(</span><span class="n">bucket</span><span class="o">.</span><span class="n">name</span><span class="p">(</span><span class="s1">&#39;bucket&#39;</span><span class="p">))</span>
            <span class="o">.</span><span class="n">aggregate</span><span class="p">(</span><span class="n">count</span><span class="o">=</span><span class="n">companies</span><span class="o">.</span><span class="n">count</span><span class="p">(),</span>
                       <span class="n">total_funding</span><span class="o">=</span><span class="n">companies</span><span class="o">.</span><span class="n">funding_total_usd</span><span class="o">.</span><span class="n">sum</span><span class="p">())</span>
            <span class="o">.</span><span class="n">mutate</span><span class="p">(</span><span class="n">bucket_name</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">bucket</span><span class="o">.</span><span class="n">label</span><span class="p">(</span><span class="n">bucket_names</span><span class="p">)))</span>
@@ -2821,18 +2823,18 @@ In&nbsp;[16]:
 In&nbsp;[17]:
 </div>
 <div class="input_area box-flex1">
-<div class="highlight-ipynb"><pre class="ipynb"><span class="n">joined</span> <span class="o">=</span> <span class="p">(</span><span class="n">companies</span><span class="o">.</span><span class="n">mutate</span><span class="p">(</span><span class="n">bucket</span><span class="o">=</span><span class="n">bucket</span><span class="p">,</span>
-                           <span class="n">status</span><span class="o">=</span><span class="n">companies</span><span class="o">.</span><span class="n">status</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="s">&#39;Unknown&#39;</span><span class="p">))</span>
-          <span class="p">[(</span><span class="n">companies</span><span class="o">.</span><span class="n">founded_at</span> <span class="o">&gt;</span> <span class="s">&#39;2010-01-01&#39;</span><span class="p">)</span> <span class="o">|</span>
+<div class="highlight-ipynb"><pre class="ipynb"><span></span><span class="n">joined</span> <span class="o">=</span> <span class="p">(</span><span class="n">companies</span><span class="o">.</span><span class="n">mutate</span><span class="p">(</span><span class="n">bucket</span><span class="o">=</span><span class="n">bucket</span><span class="p">,</span>
+                           <span class="n">status</span><span class="o">=</span><span class="n">companies</span><span class="o">.</span><span class="n">status</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="s1">&#39;Unknown&#39;</span><span class="p">))</span>
+          <span class="p">[(</span><span class="n">companies</span><span class="o">.</span><span class="n">founded_at</span> <span class="o">&gt;</span> <span class="s1">&#39;2010-01-01&#39;</span><span class="p">)</span> <span class="o">|</span>
            <span class="n">companies</span><span class="o">.</span><span class="n">founded_at</span><span class="o">.</span><span class="n">isnull</span><span class="p">()]</span>
-          <span class="o">.</span><span class="n">group_by</span><span class="p">([</span><span class="s">&#39;bucket&#39;</span><span class="p">,</span> <span class="s">&#39;status&#39;</span><span class="p">])</span>
+          <span class="o">.</span><span class="n">group_by</span><span class="p">([</span><span class="s1">&#39;bucket&#39;</span><span class="p">,</span> <span class="s1">&#39;status&#39;</span><span class="p">])</span>
           <span class="o">.</span><span class="n">size</span><span class="p">()</span>
           <span class="o">.</span><span class="n">mutate</span><span class="p">(</span><span class="n">bucket_name</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">bucket</span><span class="o">.</span><span class="n">label</span><span class="p">(</span><span class="n">bucket_names</span><span class="p">)</span>
-                                         <span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="s">&#39;Unknown&#39;</span><span class="p">))))</span>
+                                         <span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="s1">&#39;Unknown&#39;</span><span class="p">))))</span>
 
 <span class="n">table</span> <span class="o">=</span> <span class="n">joined</span><span class="o">.</span><span class="n">execute</span><span class="p">()</span>
 
-<span class="n">table</span><span class="o">.</span><span class="n">set_index</span><span class="p">([</span><span class="s">&#39;status&#39;</span><span class="p">,</span> <span class="s">&#39;bucket&#39;</span><span class="p">,</span> <span class="s">&#39;bucket_name&#39;</span><span class="p">])[</span><span class="s">&#39;count&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">unstack</span><span class="p">(</span><span class="s">&#39;status&#39;</span><span class="p">)</span>
+<span class="n">table</span><span class="o">.</span><span class="n">set_index</span><span class="p">([</span><span class="s1">&#39;status&#39;</span><span class="p">,</span> <span class="s1">&#39;bucket&#39;</span><span class="p">,</span> <span class="s1">&#39;bucket_name&#39;</span><span class="p">])[</span><span class="s1">&#39;count&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">unstack</span><span class="p">(</span><span class="s1">&#39;status&#39;</span><span class="p">)</span>
 </pre></div>
 
 </div>
@@ -2963,7 +2965,7 @@ In&nbsp;[17]:
 In&nbsp;[18]:
 </div>
 <div class="input_area box-flex1">
-<div class="highlight-ipynb"><pre class="ipynb"><span class="k">print</span><span class="p">(</span><span class="n">ibis</span><span class="o">.</span><span class="n">impala</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="n">joined</span><span class="p">))</span>
+<div class="highlight-ipynb"><pre class="ipynb"><span></span><span class="k">print</span><span class="p">(</span><span class="n">ibis</span><span class="o">.</span><span class="n">impala</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="n">joined</span><span class="p">))</span>
 </pre></div>
 
 </div>
@@ -3025,7 +3027,7 @@ FROM (
 <div class="text_cell_render border-box-sizing rendered_html">
 <h2 id="acquisition-rate-by-investor">Acquisition rate by investor</h2>
 <p>Suppose you were interested in what percentage of a particular venture capital firm's companies eventually get acquired. My friends at Mode Analytics <a href="https://modeanalytics.com/benn/reports/6cd65aab4e18">solved this problem in SQL</a> and I reproduce that query here:</p>
-<div class="sourceCode"><pre class="sourceCode sql"><code class="sourceCode sql"><span class="kw">SELECT</span> *,
+<pre class="sourceCode sql"><code class="sourceCode sql"><span class="kw">SELECT</span> *,
        acquisitions_ipos/number_of_investments:<span class="ch">:FLOAT</span> <span class="kw">AS</span> acquitision_rate
   <span class="kw">FROM</span> (
 <span class="kw">SELECT</span> <span class="kw">CASE</span> <span class="kw">WHEN</span> i.investor_name <span class="kw">IS</span> <span class="kw">NULL</span> <span class="kw">THEN</span> <span class="st">&#39;NO INVESTOR&#39;</span>
@@ -3040,7 +3042,7 @@ FROM (
        <span class="kw">GROUP</span> <span class="kw">BY</span> <span class="dv">1</span>
        <span class="kw">ORDER</span> <span class="kw">BY</span> <span class="dv">2</span> <span class="kw">DESC</span>
      ) a
-<span class="kw">LIMIT</span> <span class="dv">100</span></code></pre></div>
+<span class="kw">LIMIT</span> <span class="dv">100</span></code></pre>
 <p>Let's reproduce this piece by piece with Ibis. A few things first</p>
 </div>
 <div class="cell border-box-sizing code_cell vbox">
@@ -3049,13 +3051,13 @@ FROM (
 In&nbsp;[19]:
 </div>
 <div class="input_area box-flex1">
-<div class="highlight-ipynb"><pre class="ipynb"><span class="n">i</span> <span class="o">=</span> <span class="n">con</span><span class="o">.</span><span class="n">table</span><span class="p">(</span><span class="s">&#39;investments&#39;</span><span class="p">)</span>
-<span class="n">c</span> <span class="o">=</span> <span class="n">con</span><span class="o">.</span><span class="n">table</span><span class="p">(</span><span class="s">&#39;companies&#39;</span><span class="p">)</span>
+<div class="highlight-ipynb"><pre class="ipynb"><span></span><span class="n">i</span> <span class="o">=</span> <span class="n">con</span><span class="o">.</span><span class="n">table</span><span class="p">(</span><span class="s1">&#39;investments&#39;</span><span class="p">)</span>
+<span class="n">c</span> <span class="o">=</span> <span class="n">con</span><span class="o">.</span><span class="n">table</span><span class="p">(</span><span class="s1">&#39;companies&#39;</span><span class="p">)</span>
 
-<span class="n">clean_name</span> <span class="o">=</span> <span class="n">i</span><span class="o">.</span><span class="n">investor_name</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="s">&#39;NO INVESTOR&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">name</span><span class="p">(</span><span class="s">&#39;investor_name&#39;</span><span class="p">)</span>
+<span class="n">clean_name</span> <span class="o">=</span> <span class="n">i</span><span class="o">.</span><span class="n">investor_name</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="s1">&#39;NO INVESTOR&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">name</span><span class="p">(</span><span class="s1">&#39;investor_name&#39;</span><span class="p">)</span>
 <span class="n">num_investments</span> <span class="o">=</span> <span class="n">c</span><span class="o">.</span><span class="n">permalink</span><span class="o">.</span><span class="n">nunique</span><span class="p">()</span>
 
-<span class="n">exited</span> <span class="o">=</span> <span class="n">c</span><span class="o">.</span><span class="n">status</span><span class="o">.</span><span class="n">isin</span><span class="p">([</span><span class="s">&#39;ipo&#39;</span><span class="p">,</span> <span class="s">&#39;acquired&#39;</span><span class="p">])</span><span class="o">.</span><span class="n">ifelse</span><span class="p">(</span><span class="n">c</span><span class="o">.</span><span class="n">permalink</span><span class="p">,</span> <span class="n">ibis</span><span class="o">.</span><span class="n">NA</span><span class="p">)</span>
+<span class="n">exited</span> <span class="o">=</span> <span class="n">c</span><span class="o">.</span><span class="n">status</span><span class="o">.</span><span class="n">isin</span><span class="p">([</span><span class="s1">&#39;ipo&#39;</span><span class="p">,</span> <span class="s1">&#39;acquired&#39;</span><span class="p">])</span><span class="o">.</span><span class="n">ifelse</span><span class="p">(</span><span class="n">c</span><span class="o">.</span><span class="n">permalink</span><span class="p">,</span> <span class="n">ibis</span><span class="o">.</span><span class="n">NA</span><span class="p">)</span>
 <span class="n">num_exits</span> <span class="o">=</span> <span class="n">exited</span><span class="o">.</span><span class="n">nunique</span><span class="p">()</span>
 </pre></div>
 
@@ -3072,13 +3074,13 @@ In&nbsp;[19]:
 In&nbsp;[22]:
 </div>
 <div class="input_area box-flex1">
-<div class="highlight-ipynb"><pre class="ipynb"><span class="n">stats</span> <span class="o">=</span> <span class="p">(</span><span class="n">c</span><span class="o">.</span><span class="n">left_join</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">c</span><span class="o">.</span><span class="n">permalink</span> <span class="o">==</span> <span class="n">i</span><span class="o">.</span><span class="n">company_permalink</span><span class="p">)</span>
+<div class="highlight-ipynb"><pre class="ipynb"><span></span><span class="n">stats</span> <span class="o">=</span> <span class="p">(</span><span class="n">c</span><span class="o">.</span><span class="n">left_join</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">c</span><span class="o">.</span><span class="n">permalink</span> <span class="o">==</span> <span class="n">i</span><span class="o">.</span><span class="n">company_permalink</span><span class="p">)</span>
          <span class="o">.</span><span class="n">group_by</span><span class="p">(</span><span class="n">clean_name</span><span class="p">)</span>
          <span class="o">.</span><span class="n">aggregate</span><span class="p">(</span><span class="n">num_investments</span><span class="o">=</span><span class="n">num_investments</span><span class="p">,</span> 
                     <span class="n">num_exits</span><span class="o">=</span><span class="n">num_exits</span><span class="p">))</span>
 
 <span class="n">stats</span> <span class="o">=</span> <span class="p">(</span><span class="n">stats</span><span class="o">.</span><span class="n">mutate</span><span class="p">(</span><span class="n">acq_rate</span><span class="o">=</span><span class="p">(</span><span class="n">stats</span><span class="o">.</span><span class="n">num_exits</span> <span class="o">/</span> 
-                                <span class="n">stats</span><span class="o">.</span><span class="n">num_investments</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="s">&#39;float&#39;</span><span class="p">))))</span>
+                                <span class="n">stats</span><span class="o">.</span><span class="n">num_investments</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="s1">&#39;float&#39;</span><span class="p">))))</span>
 <span class="n">stats</span><span class="o">.</span><span class="n">limit</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span>
 </pre></div>
 
@@ -3124,9 +3126,9 @@ In&nbsp;[22]:
 In&nbsp;[23]:
 </div>
 <div class="input_area box-flex1">
-<div class="highlight-ipynb"><pre class="ipynb"><span class="n">great_success</span> <span class="o">=</span> <span class="p">(</span><span class="n">stats</span>
+<div class="highlight-ipynb"><pre class="ipynb"><span></span><span class="n">great_success</span> <span class="o">=</span> <span class="p">(</span><span class="n">stats</span>
                  <span class="p">[</span><span class="n">stats</span><span class="o">.</span><span class="n">num_investments</span> <span class="o">&gt;</span> <span class="mi">100</span><span class="p">]</span>
-                 <span class="o">.</span><span class="n">sort_by</span><span class="p">(</span><span class="n">ibis</span><span class="o">.</span><span class="n">desc</span><span class="p">(</span><span class="s">&#39;acq_rate&#39;</span><span class="p">)))</span>
+                 <span class="o">.</span><span class="n">sort_by</span><span class="p">(</span><span class="n">ibis</span><span class="o">.</span><span class="n">desc</span><span class="p">(</span><span class="s1">&#39;acq_rate&#39;</span><span class="p">)))</span>
 <span class="n">top20</span> <span class="o">=</span> <span class="n">great_success</span><span class="o">.</span><span class="n">limit</span><span class="p">(</span><span class="mi">20</span><span class="p">)</span>
 
 <span class="n">top20</span>
@@ -3197,6 +3199,9 @@ In&nbsp;[23]:
     <h1>Recent Posts</h1>
     <ul id="recent_posts">
       <li class="post">
+          <a href="http://blog.ibis-project.org/release-0.7/">Ibis 0.7: Kudu-Impala integration, SQL compiler improvements</a>
+      </li>
+      <li class="post">
           <a href="http://blog.ibis-project.org/kudu-impala-ibis/">Interactive Analytics on Dynamic Big Data in Python using Kudu, Impala, and Ibis</a>
       </li>
       <li class="post">
@@ -3207,9 +3212,6 @@ In&nbsp;[23]:
       </li>
       <li class="post">
           <a href="http://blog.ibis-project.org/design-types-operations/">Ibis Design: Expression types and operation mechanics</a>
-      </li>
-      <li class="post">
-          <a href="http://blog.ibis-project.org/sqlite-crunchbase-quickstart/">Quickstart on Crunchbase analysis using Ibis and SQLite</a>
       </li>
     </ul>
   </section>
@@ -3233,7 +3235,7 @@ In&nbsp;[23]:
 </aside>    </div>
   </div>
   <footer role="contentinfo"><p>
-    Copyright &copy;  2015  Cloudera, Inc. &mdash;
+    Copyright &copy;  2015&ndash;2016  Cloudera, Inc. &mdash;
   <span class="credit">Powered by <a href="http://getpelican.com">Pelican</a></span>
 </p></footer>
   <script src="http://blog.ibis-project.org/theme/js/modernizr-2.0.js"></script>

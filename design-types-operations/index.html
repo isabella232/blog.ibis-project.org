@@ -1600,8 +1600,10 @@ h1:hover .anchor-link,h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anch
 .highlight-ipynb .err { border: 1px solid #FF0000 } /* Error */
 .highlight-ipynb .k { color: #008000; font-weight: bold } /* Keyword */
 .highlight-ipynb .o { color: #666666 } /* Operator */
+.highlight-ipynb .ch { color: #408080; font-style: italic } /* Comment.Hashbang */
 .highlight-ipynb .cm { color: #408080; font-style: italic } /* Comment.Multiline */
 .highlight-ipynb .cp { color: #BC7A00 } /* Comment.Preproc */
+.highlight-ipynb .cpf { color: #408080; font-style: italic } /* Comment.PreprocFile */
 .highlight-ipynb .c1 { color: #408080; font-style: italic } /* Comment.Single */
 .highlight-ipynb .cs { color: #408080; font-style: italic } /* Comment.Special */
 .highlight-ipynb .gd { color: #A00000 } /* Generic.Deleted */
@@ -1800,6 +1802,7 @@ jQuery(document).ready(function($) {
   <div class="entry-content"><p>
 <div class="text_cell_render border-box-sizing rendered_html">
 
+
 <p>This blog post describes Ibis's expression type system and how its DSL (domain-specific language) operations work. It's intended for curious users or developers of the project.</p>
 <p>I spent a lot of time thinking about how to create a deferred expression DSL that compiles to SQL and is fluid and intuitive to use. No small task.</p>
 <p>The key things I want to address are:</p>
@@ -1809,6 +1812,7 @@ jQuery(document).ready(function($) {
 <li>How type checking and evaluation works</li>
 </ul>
 <p>At the end, since several people have asked me about it, I show some contrasts in Ibis's API design with <a href="http://blaze.pydata.org/">Blaze</a>, another Python project, that has its own embedded DSL.</p>
+
 
 <h2 id="ibis-expression-basics">Ibis expression basics</h2>
 <p>In general, all objects in Ibis semantically referencing real data fall into 3 categories:</p>
@@ -1826,7 +1830,7 @@ jQuery(document).ready(function($) {
 In&nbsp;[1]:
 </div>
 <div class="input_area box-flex1">
-<div class="highlight-ipynb"><pre class="ipynb"><span class="kn">import</span> <span class="nn">ibis</span>
+<div class="highlight-ipynb"><pre class="ipynb"><span></span><span class="kn">import</span> <span class="nn">ibis</span>
 
 <span class="n">value</span> <span class="o">=</span> <span class="mi">5</span>
 </pre></div>
@@ -1844,7 +1848,7 @@ In&nbsp;[1]:
 In&nbsp;[2]:
 </div>
 <div class="input_area box-flex1">
-<div class="highlight-ipynb"><pre class="ipynb"><span class="n">int_expr</span> <span class="o">=</span> <span class="n">ibis</span><span class="o">.</span><span class="n">literal</span><span class="p">(</span><span class="mi">5</span><span class="p">)</span>
+<div class="highlight-ipynb"><pre class="ipynb"><span></span><span class="n">int_expr</span> <span class="o">=</span> <span class="n">ibis</span><span class="o">.</span><span class="n">literal</span><span class="p">(</span><span class="mi">5</span><span class="p">)</span>
 <span class="n">int_expr</span>
 </pre></div>
 
@@ -1881,7 +1885,7 @@ Literal[int8]
 In&nbsp;[3]:
 </div>
 <div class="input_area box-flex1">
-<div class="highlight-ipynb"><pre class="ipynb"><span class="nb">type</span><span class="p">(</span><span class="n">int_expr</span><span class="p">)</span>
+<div class="highlight-ipynb"><pre class="ipynb"><span></span><span class="nb">type</span><span class="p">(</span><span class="n">int_expr</span><span class="p">)</span>
 </pre></div>
 
 </div>
@@ -1916,7 +1920,7 @@ ibis.expr.types.Int8Scalar
 In&nbsp;[4]:
 </div>
 <div class="input_area box-flex1">
-<div class="highlight-ipynb"><pre class="ipynb"><span class="n">int_expr</span> <span class="o">+</span> <span class="mi">10</span>
+<div class="highlight-ipynb"><pre class="ipynb"><span></span><span class="n">int_expr</span> <span class="o">+</span> <span class="mi">10</span>
 </pre></div>
 
 </div>
@@ -1952,7 +1956,7 @@ Add[int8]
 In&nbsp;[5]:
 </div>
 <div class="input_area box-flex1">
-<div class="highlight-ipynb"><pre class="ipynb"><span class="nb">type</span><span class="p">(</span><span class="n">int_expr</span> <span class="o">+</span> <span class="mi">10</span><span class="p">)</span>
+<div class="highlight-ipynb"><pre class="ipynb"><span></span><span class="nb">type</span><span class="p">(</span><span class="n">int_expr</span> <span class="o">+</span> <span class="mi">10</span><span class="p">)</span>
 </pre></div>
 
 </div>
@@ -1984,7 +1988,7 @@ ibis.expr.types.Int8Scalar
 In&nbsp;[6]:
 </div>
 <div class="input_area box-flex1">
-<div class="highlight-ipynb"><pre class="ipynb"><span class="n">expr</span> <span class="o">=</span> <span class="p">(</span><span class="n">int_expr</span> <span class="o">+</span> <span class="mi">10</span><span class="p">)</span><span class="o">.</span><span class="n">sqrt</span><span class="p">()</span>
+<div class="highlight-ipynb"><pre class="ipynb"><span></span><span class="n">expr</span> <span class="o">=</span> <span class="p">(</span><span class="n">int_expr</span> <span class="o">+</span> <span class="mi">10</span><span class="p">)</span><span class="o">.</span><span class="n">sqrt</span><span class="p">()</span>
 <span class="n">expr</span>
 </pre></div>
 
@@ -2025,7 +2029,7 @@ Sqrt[double]
 In&nbsp;[7]:
 </div>
 <div class="input_area box-flex1">
-<div class="highlight-ipynb"><pre class="ipynb"><span class="nb">type</span><span class="p">(</span><span class="n">expr</span><span class="p">)</span>
+<div class="highlight-ipynb"><pre class="ipynb"><span></span><span class="nb">type</span><span class="p">(</span><span class="n">expr</span><span class="p">)</span>
 </pre></div>
 
 </div>
@@ -2060,9 +2064,9 @@ ibis.expr.types.DoubleScalar
 In&nbsp;[8]:
 </div>
 <div class="input_area box-flex1">
-<div class="highlight-ipynb"><pre class="ipynb"><span class="n">rounded</span> <span class="o">=</span> <span class="n">expr</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+<div class="highlight-ipynb"><pre class="ipynb"><span></span><span class="n">rounded</span> <span class="o">=</span> <span class="n">expr</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
 
-<span class="k">print</span><span class="p">(</span><span class="s">&#39;Type is {0!r}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">rounded</span><span class="p">)))</span>
+<span class="k">print</span><span class="p">(</span><span class="s1">&#39;Type is {0!r}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">rounded</span><span class="p">)))</span>
 
 <span class="n">rounded</span>
 </pre></div>
@@ -2116,7 +2120,7 @@ Round[double]
 In&nbsp;[9]:
 </div>
 <div class="input_area box-flex1">
-<div class="highlight-ipynb"><pre class="ipynb"><span class="k">print</span><span class="p">(</span><span class="n">ibis</span><span class="o">.</span><span class="n">impala</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="n">rounded</span><span class="p">))</span>
+<div class="highlight-ipynb"><pre class="ipynb"><span></span><span class="k">print</span><span class="p">(</span><span class="n">ibis</span><span class="o">.</span><span class="n">impala</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="n">rounded</span><span class="p">))</span>
 </pre></div>
 
 </div>
@@ -2148,7 +2152,7 @@ SELECT round(sqrt(5 + 10), 2) AS &#96;tmp&#96;
 In&nbsp;[10]:
 </div>
 <div class="input_area box-flex1">
-<div class="highlight-ipynb"><pre class="ipynb"><span class="n">con</span> <span class="o">=</span> <span class="n">ibis</span><span class="o">.</span><span class="n">impala</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="s">&#39;bottou01.sjc.cloudera.com&#39;</span><span class="p">)</span>
+<div class="highlight-ipynb"><pre class="ipynb"><span></span><span class="n">con</span> <span class="o">=</span> <span class="n">ibis</span><span class="o">.</span><span class="n">impala</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="s1">&#39;bottou01.sjc.cloudera.com&#39;</span><span class="p">)</span>
 <span class="n">con</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">rounded</span><span class="p">)</span>
 </pre></div>
 
@@ -2184,7 +2188,7 @@ In&nbsp;[10]:
 In&nbsp;[11]:
 </div>
 <div class="input_area box-flex1">
-<div class="highlight-ipynb"><pre class="ipynb"><span class="n">db</span> <span class="o">=</span> <span class="n">con</span><span class="o">.</span><span class="n">database</span><span class="p">(</span><span class="s">&#39;ibis_testing&#39;</span><span class="p">)</span>
+<div class="highlight-ipynb"><pre class="ipynb"><span></span><span class="n">db</span> <span class="o">=</span> <span class="n">con</span><span class="o">.</span><span class="n">database</span><span class="p">(</span><span class="s1">&#39;ibis_testing&#39;</span><span class="p">)</span>
 <span class="n">t</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">functional_alltypes</span>
 <span class="n">t</span>
 </pre></div>
@@ -2233,7 +2237,7 @@ DatabaseTable[table]
 In&nbsp;[12]:
 </div>
 <div class="input_area box-flex1">
-<div class="highlight-ipynb"><pre class="ipynb"><span class="nb">type</span><span class="p">(</span><span class="n">t</span><span class="p">)</span>
+<div class="highlight-ipynb"><pre class="ipynb"><span></span><span class="nb">type</span><span class="p">(</span><span class="n">t</span><span class="p">)</span>
 </pre></div>
 
 </div>
@@ -2268,7 +2272,7 @@ ibis.impala.client.ImpalaTable
 In&nbsp;[13]:
 </div>
 <div class="input_area box-flex1">
-<div class="highlight-ipynb"><pre class="ipynb"><span class="nb">type</span><span class="p">(</span><span class="n">t</span><span class="p">)</span><span class="o">.</span><span class="n">mro</span><span class="p">()</span>
+<div class="highlight-ipynb"><pre class="ipynb"><span></span><span class="nb">type</span><span class="p">(</span><span class="n">t</span><span class="p">)</span><span class="o">.</span><span class="n">mro</span><span class="p">()</span>
 </pre></div>
 
 </div>
@@ -2307,13 +2311,13 @@ In&nbsp;[13]:
 In&nbsp;[14]:
 </div>
 <div class="input_area box-flex1">
-<div class="highlight-ipynb"><pre class="ipynb"><span class="n">expr</span> <span class="o">=</span> <span class="p">(</span><span class="n">t</span>             <span class="c"># DatabaseTable -&gt; TableExpr</span>
-        <span class="o">.</span><span class="n">limit</span><span class="p">(</span><span class="mi">20</span><span class="p">)</span>    <span class="c"># Limit         -&gt; TableExpr</span>
-        <span class="o">.</span><span class="n">tinyint_col</span>  <span class="c"># TableColumn   -&gt; Int8Array</span>
-        <span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span>      <span class="c"># Add           -&gt; Int16Array</span>
-        <span class="o">.</span><span class="n">sqrt</span><span class="p">()</span>       <span class="c"># Sqrt          -&gt; DoubleArray</span>
-        <span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>     <span class="c"># Round         -&gt; DoubleArray</span>
-        <span class="o">.</span><span class="n">sum</span><span class="p">())</span>       <span class="c"># Sum           -&gt; DoubleScalar</span>
+<div class="highlight-ipynb"><pre class="ipynb"><span></span><span class="n">expr</span> <span class="o">=</span> <span class="p">(</span><span class="n">t</span>             <span class="c1"># DatabaseTable -&gt; TableExpr</span>
+        <span class="o">.</span><span class="n">limit</span><span class="p">(</span><span class="mi">20</span><span class="p">)</span>    <span class="c1"># Limit         -&gt; TableExpr</span>
+        <span class="o">.</span><span class="n">tinyint_col</span>  <span class="c1"># TableColumn   -&gt; Int8Array</span>
+        <span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span>      <span class="c1"># Add           -&gt; Int16Array</span>
+        <span class="o">.</span><span class="n">sqrt</span><span class="p">()</span>       <span class="c1"># Sqrt          -&gt; DoubleArray</span>
+        <span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>     <span class="c1"># Round         -&gt; DoubleArray</span>
+        <span class="o">.</span><span class="n">sum</span><span class="p">())</span>       <span class="c1"># Sum           -&gt; DoubleScalar</span>
 
 <span class="n">expr</span>
 </pre></div>
@@ -2383,7 +2387,7 @@ sum = Sum[double]
 In&nbsp;[15]:
 </div>
 <div class="input_area box-flex1">
-<div class="highlight-ipynb"><pre class="ipynb"><span class="nb">type</span><span class="p">(</span><span class="n">expr</span><span class="p">)</span>
+<div class="highlight-ipynb"><pre class="ipynb"><span></span><span class="nb">type</span><span class="p">(</span><span class="n">expr</span><span class="p">)</span>
 </pre></div>
 
 </div>
@@ -2418,7 +2422,7 @@ ibis.expr.types.DoubleScalar
 In&nbsp;[16]:
 </div>
 <div class="input_area box-flex1">
-<div class="highlight-ipynb"><pre class="ipynb"><span class="n">con</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">expr</span><span class="p">)</span>
+<div class="highlight-ipynb"><pre class="ipynb"><span></span><span class="n">con</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">expr</span><span class="p">)</span>
 </pre></div>
 
 </div>
@@ -2450,7 +2454,7 @@ In&nbsp;[16]:
 In&nbsp;[17]:
 </div>
 <div class="input_area box-flex1">
-<div class="highlight-ipynb"><pre class="ipynb"><span class="k">print</span><span class="p">(</span><span class="n">expr</span><span class="o">.</span><span class="n">compile</span><span class="p">())</span>
+<div class="highlight-ipynb"><pre class="ipynb"><span></span><span class="k">print</span><span class="p">(</span><span class="n">expr</span><span class="o">.</span><span class="n">compile</span><span class="p">())</span>
 </pre></div>
 
 </div>
@@ -2491,7 +2495,7 @@ FROM (
 In&nbsp;[18]:
 </div>
 <div class="input_area box-flex1">
-<div class="highlight-ipynb"><pre class="ipynb"><span class="n">expr</span> <span class="o">=</span> <span class="n">ibis</span><span class="o">.</span><span class="n">literal</span><span class="p">(</span><span class="s">&#39;wes mckinney&#39;</span><span class="p">)</span>
+<div class="highlight-ipynb"><pre class="ipynb"><span></span><span class="n">expr</span> <span class="o">=</span> <span class="n">ibis</span><span class="o">.</span><span class="n">literal</span><span class="p">(</span><span class="s1">&#39;wes mckinney&#39;</span><span class="p">)</span>
 <span class="nb">type</span><span class="p">(</span><span class="n">expr</span><span class="p">)</span>
 </pre></div>
 
@@ -2524,7 +2528,7 @@ ibis.expr.types.StringScalar
 In&nbsp;[19]:
 </div>
 <div class="input_area box-flex1">
-<div class="highlight-ipynb"><pre class="ipynb"><span class="n">chopped</span> <span class="o">=</span> <span class="n">expr</span><span class="o">.</span><span class="n">substr</span><span class="p">(</span><span class="mi">4</span><span class="p">)</span>
+<div class="highlight-ipynb"><pre class="ipynb"><span></span><span class="n">chopped</span> <span class="o">=</span> <span class="n">expr</span><span class="o">.</span><span class="n">substr</span><span class="p">(</span><span class="mi">4</span><span class="p">)</span>
 <span class="n">chopped</span>
 </pre></div>
 
@@ -2562,7 +2566,7 @@ Substring[string]
 In&nbsp;[20]:
 </div>
 <div class="input_area box-flex1">
-<div class="highlight-ipynb"><pre class="ipynb"><span class="n">chopped</span><span class="o">.</span><span class="n">execute</span><span class="p">()</span>
+<div class="highlight-ipynb"><pre class="ipynb"><span></span><span class="n">chopped</span><span class="o">.</span><span class="n">execute</span><span class="p">()</span>
 </pre></div>
 
 </div>
@@ -2590,11 +2594,11 @@ In&nbsp;[20]:
 </div>
 <div class="text_cell_render border-box-sizing rendered_html">
 <p>Here is the implementation of <code>Substring</code>:</p>
-<div class="sourceCode"><pre class="sourceCode python"><code class="sourceCode python"><span class="kw">class</span> Substring(ValueOp):
+<pre class="sourceCode python"><code class="sourceCode python"><span class="kw">class</span> Substring(ValueOp):
 
-    input_type <span class="op">=</span> [string, integer(name<span class="op">=</span><span class="st">&#39;start&#39;</span>),
-                  integer(name<span class="op">=</span><span class="st">&#39;length&#39;</span>, optional<span class="op">=</span><span class="va">True</span>)]
-    output_type <span class="op">=</span> rules.shape_like_arg(<span class="dv">0</span>, <span class="st">&#39;string&#39;</span>)</code></pre></div>
+    input_type = [string, integer(name=<span class="st">&#39;start&#39;</span>),
+                  integer(name=<span class="st">&#39;length&#39;</span>, optional=<span class="ot">True</span>)]
+    output_type = rules.shape_like_arg(<span class="dv">0</span>, <span class="st">&#39;string&#39;</span>)</code></pre>
 <p>What's going on when I call <code>expr.substr(4)</code> is, in fact:</p>
 </div>
 <div class="cell border-box-sizing code_cell vbox">
@@ -2603,7 +2607,7 @@ In&nbsp;[20]:
 In&nbsp;[21]:
 </div>
 <div class="input_area box-flex1">
-<div class="highlight-ipynb"><pre class="ipynb"><span class="kn">import</span> <span class="nn">ibis.expr.operations</span> <span class="kn">as</span> <span class="nn">ops</span>
+<div class="highlight-ipynb"><pre class="ipynb"><span></span><span class="kn">import</span> <span class="nn">ibis.expr.operations</span> <span class="kn">as</span> <span class="nn">ops</span>
 
 <span class="n">op</span> <span class="o">=</span> <span class="n">ops</span><span class="o">.</span><span class="n">Substring</span><span class="p">(</span><span class="n">expr</span><span class="p">,</span> <span class="mi">4</span><span class="p">)</span>
 
@@ -2643,7 +2647,7 @@ ibis.expr.operations.Substring
 In&nbsp;[22]:
 </div>
 <div class="input_area box-flex1">
-<div class="highlight-ipynb"><pre class="ipynb"><span class="n">op</span><span class="o">.</span><span class="n">output_type</span><span class="p">()</span>
+<div class="highlight-ipynb"><pre class="ipynb"><span></span><span class="n">op</span><span class="o">.</span><span class="n">output_type</span><span class="p">()</span>
 </pre></div>
 
 </div>
@@ -2678,7 +2682,7 @@ ibis.expr.types.StringScalar
 In&nbsp;[23]:
 </div>
 <div class="input_area box-flex1">
-<div class="highlight-ipynb"><pre class="ipynb"><span class="n">chopped</span> <span class="o">=</span> <span class="n">op</span><span class="o">.</span><span class="n">to_expr</span><span class="p">()</span>
+<div class="highlight-ipynb"><pre class="ipynb"><span></span><span class="n">chopped</span> <span class="o">=</span> <span class="n">op</span><span class="o">.</span><span class="n">to_expr</span><span class="p">()</span>
 <span class="n">chopped</span>
 </pre></div>
 
@@ -2728,9 +2732,9 @@ Substring[string]
 In&nbsp;[24]:
 </div>
 <div class="input_area box-flex1">
-<div class="highlight-ipynb"><pre class="ipynb"><span class="n">t2</span> <span class="o">=</span> <span class="n">ibis</span><span class="o">.</span><span class="n">table</span><span class="p">([(</span><span class="s">&#39;v1&#39;</span><span class="p">,</span> <span class="s">&#39;double&#39;</span><span class="p">),</span>
-                 <span class="p">(</span><span class="s">&#39;v2&#39;</span><span class="p">,</span> <span class="s">&#39;int32&#39;</span><span class="p">),</span>
-                 <span class="p">(</span><span class="s">&#39;v3&#39;</span><span class="p">,</span> <span class="s">&#39;string&#39;</span><span class="p">)],</span> <span class="s">&#39;hamster&#39;</span><span class="p">)</span>
+<div class="highlight-ipynb"><pre class="ipynb"><span></span><span class="n">t2</span> <span class="o">=</span> <span class="n">ibis</span><span class="o">.</span><span class="n">table</span><span class="p">([(</span><span class="s1">&#39;v1&#39;</span><span class="p">,</span> <span class="s1">&#39;double&#39;</span><span class="p">),</span>
+                 <span class="p">(</span><span class="s1">&#39;v2&#39;</span><span class="p">,</span> <span class="s1">&#39;int32&#39;</span><span class="p">),</span>
+                 <span class="p">(</span><span class="s1">&#39;v3&#39;</span><span class="p">,</span> <span class="s1">&#39;string&#39;</span><span class="p">)],</span> <span class="s1">&#39;hamster&#39;</span><span class="p">)</span>
 <span class="n">t2</span>
 </pre></div>
 
@@ -2771,7 +2775,7 @@ UnboundTable[table]
 In&nbsp;[25]:
 </div>
 <div class="input_area box-flex1">
-<div class="highlight-ipynb"><pre class="ipynb"><span class="n">t2</span><span class="o">.</span><span class="n">v3</span>
+<div class="highlight-ipynb"><pre class="ipynb"><span></span><span class="n">t2</span><span class="o">.</span><span class="n">v3</span>
 </pre></div>
 
 </div>
@@ -2814,7 +2818,7 @@ v3 = Column[array(string)] &apos;v3&apos; from table ref_0
 In&nbsp;[26]:
 </div>
 <div class="input_area box-flex1">
-<div class="highlight-ipynb"><pre class="ipynb"><span class="n">t2</span><span class="o">.</span><span class="n">v3</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+<div class="highlight-ipynb"><pre class="ipynb"><span></span><span class="n">t2</span><span class="o">.</span><span class="n">v3</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
 </pre></div>
 
 </div>
@@ -2849,7 +2853,7 @@ In&nbsp;[26]:
 In&nbsp;[27]:
 </div>
 <div class="input_area box-flex1">
-<div class="highlight-ipynb"><pre class="ipynb"><span class="n">t2</span><span class="o">.</span><span class="n">v1</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+<div class="highlight-ipynb"><pre class="ipynb"><span></span><span class="n">t2</span><span class="o">.</span><span class="n">v1</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
 </pre></div>
 
 </div>
@@ -2891,7 +2895,7 @@ sum = Sum[double]
 In&nbsp;[28]:
 </div>
 <div class="input_area box-flex1">
-<div class="highlight-ipynb"><pre class="ipynb"><span class="n">t2</span><span class="o">.</span><span class="n">v1</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="s">&#39;string&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+<div class="highlight-ipynb"><pre class="ipynb"><span></span><span class="n">t2</span><span class="o">.</span><span class="n">v1</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="s1">&#39;string&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
 </pre></div>
 
 </div>
@@ -2926,9 +2930,9 @@ In&nbsp;[28]:
 In&nbsp;[29]:
 </div>
 <div class="input_area box-flex1">
-<div class="highlight-ipynb"><pre class="ipynb"><span class="n">expr</span> <span class="o">=</span> <span class="n">t2</span><span class="o">.</span><span class="n">v1</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>  <span class="c"># valid</span>
+<div class="highlight-ipynb"><pre class="ipynb"><span></span><span class="n">expr</span> <span class="o">=</span> <span class="n">t2</span><span class="o">.</span><span class="n">v1</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>  <span class="c1"># valid</span>
 
-<span class="n">t2</span><span class="o">.</span><span class="n">v1</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="s">&#39;foo&#39;</span><span class="p">)</span>  <span class="c"># invalid</span>
+<span class="n">t2</span><span class="o">.</span><span class="n">v1</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="s1">&#39;foo&#39;</span><span class="p">)</span>  <span class="c1"># invalid</span>
 </pre></div>
 
 </div>
@@ -2998,6 +3002,7 @@ Argument was: &apos;foo&apos;</pre>
 <center>
 <img src="../images/int8value-mro.png"></img>
 </center>
+
 <p>Methods are shared amongst type classes, and the classes assist with type validation, implicit casts, and other internal matters in the DSL and SQL compiler toolchain.</p>
 </div>
 <div class="text_cell_render border-box-sizing rendered_html">
@@ -3012,9 +3017,9 @@ Argument was: &apos;foo&apos;</pre>
 In&nbsp;[30]:
 </div>
 <div class="input_area box-flex1">
-<div class="highlight-ipynb"><pre class="ipynb"><span class="kn">import</span> <span class="nn">blaze</span> <span class="kn">as</span> <span class="nn">bz</span>
+<div class="highlight-ipynb"><pre class="ipynb"><span></span><span class="kn">import</span> <span class="nn">blaze</span> <span class="kn">as</span> <span class="nn">bz</span>
 
-<span class="n">t</span> <span class="o">=</span> <span class="n">bz</span><span class="o">.</span><span class="n">TableSymbol</span><span class="p">(</span><span class="s">&#39;hamster&#39;</span><span class="p">,</span> <span class="s">&#39;{v1: float64, v2: int32, v3: string}&#39;</span><span class="p">)</span>
+<span class="n">t</span> <span class="o">=</span> <span class="n">bz</span><span class="o">.</span><span class="n">TableSymbol</span><span class="p">(</span><span class="s1">&#39;hamster&#39;</span><span class="p">,</span> <span class="s1">&#39;{v1: float64, v2: int32, v3: string}&#39;</span><span class="p">)</span>
 <span class="n">t</span>
 </pre></div>
 
@@ -3046,7 +3051,7 @@ hamster
 In&nbsp;[31]:
 </div>
 <div class="input_area box-flex1">
-<div class="highlight-ipynb"><pre class="ipynb"><span class="nb">type</span><span class="p">(</span><span class="n">t</span><span class="p">)</span>
+<div class="highlight-ipynb"><pre class="ipynb"><span></span><span class="nb">type</span><span class="p">(</span><span class="n">t</span><span class="p">)</span>
 </pre></div>
 
 </div>
@@ -3081,7 +3086,7 @@ blaze.expr.expressions.Symbol
 In&nbsp;[32]:
 </div>
 <div class="input_area box-flex1">
-<div class="highlight-ipynb"><pre class="ipynb"><span class="nb">type</span><span class="p">(</span><span class="n">t</span><span class="p">)</span><span class="o">.</span><span class="n">mro</span><span class="p">()</span>
+<div class="highlight-ipynb"><pre class="ipynb"><span></span><span class="nb">type</span><span class="p">(</span><span class="n">t</span><span class="p">)</span><span class="o">.</span><span class="n">mro</span><span class="p">()</span>
 </pre></div>
 
 </div>
@@ -3119,7 +3124,7 @@ In&nbsp;[32]:
 In&nbsp;[33]:
 </div>
 <div class="input_area box-flex1">
-<div class="highlight-ipynb"><pre class="ipynb"><span class="n">t</span><span class="o">.</span><span class="n">dshape</span>
+<div class="highlight-ipynb"><pre class="ipynb"><span></span><span class="n">t</span><span class="o">.</span><span class="n">dshape</span>
 </pre></div>
 
 </div>
@@ -3155,7 +3160,7 @@ dshape(&quot;var * {v1: float64, v2: int32, v3: string}&quot;)
 In&nbsp;[34]:
 </div>
 <div class="input_area box-flex1">
-<div class="highlight-ipynb"><pre class="ipynb"><span class="n">expr</span> <span class="o">=</span> <span class="n">t</span><span class="o">.</span><span class="n">v1</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+<div class="highlight-ipynb"><pre class="ipynb"><span></span><span class="n">expr</span> <span class="o">=</span> <span class="n">t</span><span class="o">.</span><span class="n">v1</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
 </pre></div>
 
 </div>
@@ -3171,7 +3176,7 @@ In&nbsp;[34]:
 In&nbsp;[35]:
 </div>
 <div class="input_area box-flex1">
-<div class="highlight-ipynb"><pre class="ipynb"><span class="n">expr</span>
+<div class="highlight-ipynb"><pre class="ipynb"><span></span><span class="n">expr</span>
 </pre></div>
 
 </div>
@@ -3202,7 +3207,7 @@ sum(hamster.v1)
 In&nbsp;[36]:
 </div>
 <div class="input_area box-flex1">
-<div class="highlight-ipynb"><pre class="ipynb"><span class="nb">type</span><span class="p">(</span><span class="n">expr</span><span class="p">)</span>
+<div class="highlight-ipynb"><pre class="ipynb"><span></span><span class="nb">type</span><span class="p">(</span><span class="n">expr</span><span class="p">)</span>
 </pre></div>
 
 </div>
@@ -3234,7 +3239,7 @@ blaze.expr.reductions.sum
 In&nbsp;[37]:
 </div>
 <div class="input_area box-flex1">
-<div class="highlight-ipynb"><pre class="ipynb"><span class="nb">type</span><span class="p">(</span><span class="n">expr</span><span class="p">)</span><span class="o">.</span><span class="n">mro</span><span class="p">()</span>
+<div class="highlight-ipynb"><pre class="ipynb"><span></span><span class="nb">type</span><span class="p">(</span><span class="n">expr</span><span class="p">)</span><span class="o">.</span><span class="n">mro</span><span class="p">()</span>
 </pre></div>
 
 </div>
@@ -3270,7 +3275,7 @@ In&nbsp;[37]:
 In&nbsp;[38]:
 </div>
 <div class="input_area box-flex1">
-<div class="highlight-ipynb"><pre class="ipynb"><span class="n">expr</span><span class="o">.</span><span class="n">dshape</span>
+<div class="highlight-ipynb"><pre class="ipynb"><span></span><span class="n">expr</span><span class="o">.</span><span class="n">dshape</span>
 </pre></div>
 
 </div>
@@ -3305,7 +3310,7 @@ dshape(&quot;float64&quot;)
 In&nbsp;[39]:
 </div>
 <div class="input_area box-flex1">
-<div class="highlight-ipynb"><pre class="ipynb"><span class="n">t</span><span class="o">.</span><span class="n">v3</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+<div class="highlight-ipynb"><pre class="ipynb"><span></span><span class="n">t</span><span class="o">.</span><span class="n">v3</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
 </pre></div>
 
 </div>
@@ -3347,7 +3352,7 @@ In&nbsp;[39]:
 In&nbsp;[40]:
 </div>
 <div class="input_area box-flex1">
-<div class="highlight-ipynb"><pre class="ipynb"><span class="kn">import</span> <span class="nn">blaze.expr.functions</span> <span class="kn">as</span> <span class="nn">bzfunc</span>
+<div class="highlight-ipynb"><pre class="ipynb"><span></span><span class="kn">import</span> <span class="nn">blaze.expr.functions</span> <span class="kn">as</span> <span class="nn">bzfunc</span>
 </pre></div>
 
 </div>
@@ -3363,7 +3368,7 @@ In&nbsp;[40]:
 In&nbsp;[41]:
 </div>
 <div class="input_area box-flex1">
-<div class="highlight-ipynb"><pre class="ipynb"><span class="n">expr</span> <span class="o">=</span> <span class="n">bzfunc</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">t</span><span class="o">.</span><span class="n">v3</span><span class="p">)</span>
+<div class="highlight-ipynb"><pre class="ipynb"><span></span><span class="n">expr</span> <span class="o">=</span> <span class="n">bzfunc</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">t</span><span class="o">.</span><span class="n">v3</span><span class="p">)</span>
 <span class="n">expr</span>
 </pre></div>
 
@@ -3398,7 +3403,7 @@ sum(hamster.v3)
 In&nbsp;[42]:
 </div>
 <div class="input_area box-flex1">
-<div class="highlight-ipynb"><pre class="ipynb"><span class="n">expr</span><span class="o">.</span><span class="n">dshape</span>
+<div class="highlight-ipynb"><pre class="ipynb"><span></span><span class="n">expr</span><span class="o">.</span><span class="n">dshape</span>
 </pre></div>
 
 </div>
@@ -3454,7 +3459,7 @@ In&nbsp;[42]:
 In&nbsp;[43]:
 </div>
 <div class="input_area box-flex1">
-<div class="highlight-ipynb"><pre class="ipynb"><span class="n">expr</span> <span class="o">=</span> <span class="n">bzfunc</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">t</span><span class="o">.</span><span class="n">v3</span><span class="p">)</span>
+<div class="highlight-ipynb"><pre class="ipynb"><span></span><span class="n">expr</span> <span class="o">=</span> <span class="n">bzfunc</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">t</span><span class="o">.</span><span class="n">v3</span><span class="p">)</span>
 <span class="n">expr</span><span class="o">.</span><span class="n">dshape</span>
 </pre></div>
 
@@ -3490,7 +3495,7 @@ dshape(&quot;var * float64&quot;)
 In&nbsp;[44]:
 </div>
 <div class="input_area box-flex1">
-<div class="highlight-ipynb"><pre class="ipynb"><span class="n">expr</span> <span class="o">=</span> <span class="n">t</span><span class="o">.</span><span class="n">v1</span> <span class="o">+</span> <span class="n">t</span><span class="o">.</span><span class="n">v3</span>
+<div class="highlight-ipynb"><pre class="ipynb"><span></span><span class="n">expr</span> <span class="o">=</span> <span class="n">t</span><span class="o">.</span><span class="n">v1</span> <span class="o">+</span> <span class="n">t</span><span class="o">.</span><span class="n">v3</span>
 <span class="n">expr</span>
 </pre></div>
 
@@ -3525,7 +3530,7 @@ hamster.v1 + hamster.v3
 In&nbsp;[45]:
 </div>
 <div class="input_area box-flex1">
-<div class="highlight-ipynb"><pre class="ipynb"><span class="n">expr</span><span class="o">.</span><span class="n">dshape</span>
+<div class="highlight-ipynb"><pre class="ipynb"><span></span><span class="n">expr</span><span class="o">.</span><span class="n">dshape</span>
 </pre></div>
 
 </div>
@@ -3560,7 +3565,7 @@ dshape(&quot;var * object&quot;)
 In&nbsp;[46]:
 </div>
 <div class="input_area box-flex1">
-<div class="highlight-ipynb"><pre class="ipynb"><span class="n">expr</span> <span class="o">=</span> <span class="n">t</span><span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">v3</span> <span class="o">&gt;</span> <span class="mi">5</span><span class="p">]</span>
+<div class="highlight-ipynb"><pre class="ipynb"><span></span><span class="n">expr</span> <span class="o">=</span> <span class="n">t</span><span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">v3</span> <span class="o">&gt;</span> <span class="mi">5</span><span class="p">]</span>
 </pre></div>
 
 </div>
@@ -3576,9 +3581,9 @@ In&nbsp;[46]:
 In&nbsp;[47]:
 </div>
 <div class="input_area box-flex1">
-<div class="highlight-ipynb"><pre class="ipynb"><span class="n">expr</span> <span class="o">=</span> <span class="n">bzfunc</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">t</span><span class="o">.</span><span class="n">v1</span><span class="p">)</span>
+<div class="highlight-ipynb"><pre class="ipynb"><span></span><span class="n">expr</span> <span class="o">=</span> <span class="n">bzfunc</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">t</span><span class="o">.</span><span class="n">v1</span><span class="p">)</span>
 <span class="k">print</span><span class="p">(</span><span class="n">expr</span><span class="o">.</span><span class="n">dshape</span><span class="p">)</span>
-<span class="p">[</span><span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">dir</span><span class="p">(</span><span class="n">expr</span><span class="p">)</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">x</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s">&#39;_&#39;</span><span class="p">)]</span>
+<span class="p">[</span><span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">dir</span><span class="p">(</span><span class="n">expr</span><span class="p">)</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">x</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;_&#39;</span><span class="p">)]</span>
 </pre></div>
 
 </div>
@@ -3655,6 +3660,9 @@ float64
     <h1>Recent Posts</h1>
     <ul id="recent_posts">
       <li class="post">
+          <a href="http://blog.ibis-project.org/release-0.7/">Ibis 0.7: Kudu-Impala integration, SQL compiler improvements</a>
+      </li>
+      <li class="post">
           <a href="http://blog.ibis-project.org/kudu-impala-ibis/">Interactive Analytics on Dynamic Big Data in Python using Kudu, Impala, and Ibis</a>
       </li>
       <li class="post">
@@ -3665,9 +3673,6 @@ float64
       </li>
       <li class="post">
           <a href="http://blog.ibis-project.org/design-types-operations/">Ibis Design: Expression types and operation mechanics</a>
-      </li>
-      <li class="post">
-          <a href="http://blog.ibis-project.org/sqlite-crunchbase-quickstart/">Quickstart on Crunchbase analysis using Ibis and SQLite</a>
       </li>
     </ul>
   </section>
@@ -3691,7 +3696,7 @@ float64
 </aside>    </div>
   </div>
   <footer role="contentinfo"><p>
-    Copyright &copy;  2015  Cloudera, Inc. &mdash;
+    Copyright &copy;  2015&ndash;2016  Cloudera, Inc. &mdash;
   <span class="credit">Powered by <a href="http://getpelican.com">Pelican</a></span>
 </p></footer>
   <script src="http://blog.ibis-project.org/theme/js/modernizr-2.0.js"></script>

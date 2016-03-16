@@ -1600,8 +1600,10 @@ h1:hover .anchor-link,h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anch
 .highlight-ipynb .err { border: 1px solid #FF0000 } /* Error */
 .highlight-ipynb .k { color: #008000; font-weight: bold } /* Keyword */
 .highlight-ipynb .o { color: #666666 } /* Operator */
+.highlight-ipynb .ch { color: #408080; font-style: italic } /* Comment.Hashbang */
 .highlight-ipynb .cm { color: #408080; font-style: italic } /* Comment.Multiline */
 .highlight-ipynb .cp { color: #BC7A00 } /* Comment.Preproc */
+.highlight-ipynb .cpf { color: #408080; font-style: italic } /* Comment.PreprocFile */
 .highlight-ipynb .c1 { color: #408080; font-style: italic } /* Comment.Single */
 .highlight-ipynb .cs { color: #408080; font-style: italic } /* Comment.Special */
 .highlight-ipynb .gd { color: #A00000 } /* Generic.Deleted */
@@ -1812,7 +1814,7 @@ blog posts):</p>
 <li>Support for Kerberos-enabled secure HDFS clusters</li>
 </ul>
 <p>Thanks to all who contributed patches:</p>
-<div class="highlight"><pre><span class="nv">$ </span>git log v0.3.0..v0.4.0 --pretty<span class="o">=</span>format:%aN <span class="p">|</span> sort <span class="p">|</span> uniq -c <span class="p">|</span> sort -rn
+<div class="highlight"><pre><span></span>$ git log v0.3.0..v0.4.0 --pretty<span class="o">=</span>format:%aN <span class="p">|</span> sort <span class="p">|</span> uniq -c <span class="p">|</span> sort -rn
      <span class="m">38</span> Wes McKinney
       <span class="m">9</span> Uri Laserson
       <span class="m">2</span> Meghana Vuyyuru
@@ -1856,6 +1858,9 @@ following compute engines:</p>
     <h1>Recent Posts</h1>
     <ul id="recent_posts">
       <li class="post">
+          <a href="http://blog.ibis-project.org/release-0.7/">Ibis 0.7: Kudu-Impala integration, SQL compiler improvements</a>
+      </li>
+      <li class="post">
           <a href="http://blog.ibis-project.org/kudu-impala-ibis/">Interactive Analytics on Dynamic Big Data in Python using Kudu, Impala, and Ibis</a>
       </li>
       <li class="post">
@@ -1866,9 +1871,6 @@ following compute engines:</p>
       </li>
       <li class="post">
           <a href="http://blog.ibis-project.org/design-types-operations/">Ibis Design: Expression types and operation mechanics</a>
-      </li>
-      <li class="post">
-          <a href="http://blog.ibis-project.org/sqlite-crunchbase-quickstart/">Quickstart on Crunchbase analysis using Ibis and SQLite</a>
       </li>
     </ul>
   </section>
@@ -1892,7 +1894,7 @@ following compute engines:</p>
 </aside>    </div>
   </div>
   <footer role="contentinfo"><p>
-    Copyright &copy;  2015  Cloudera, Inc. &mdash;
+    Copyright &copy;  2015&ndash;2016  Cloudera, Inc. &mdash;
   <span class="credit">Powered by <a href="http://getpelican.com">Pelican</a></span>
 </p></footer>
   <script src="http://blog.ibis-project.org/theme/js/modernizr-2.0.js"></script>

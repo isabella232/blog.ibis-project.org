@@ -1600,8 +1600,10 @@ h1:hover .anchor-link,h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anch
 .highlight-ipynb .err { border: 1px solid #FF0000 } /* Error */
 .highlight-ipynb .k { color: #008000; font-weight: bold } /* Keyword */
 .highlight-ipynb .o { color: #666666 } /* Operator */
+.highlight-ipynb .ch { color: #408080; font-style: italic } /* Comment.Hashbang */
 .highlight-ipynb .cm { color: #408080; font-style: italic } /* Comment.Multiline */
 .highlight-ipynb .cp { color: #BC7A00 } /* Comment.Preproc */
+.highlight-ipynb .cpf { color: #408080; font-style: italic } /* Comment.PreprocFile */
 .highlight-ipynb .c1 { color: #408080; font-style: italic } /* Comment.Single */
 .highlight-ipynb .cs { color: #408080; font-style: italic } /* Comment.Special */
 .highlight-ipynb .gd { color: #A00000 } /* Generic.Deleted */
@@ -1791,6 +1793,24 @@ jQuery(document).ready(function($) {
   		<article>
 <header>
       <h1 class="entry-title">
+        <a href="http://blog.ibis-project.org/release-0.7/">Ibis 0.7: Kudu-Impala integration, SQL compiler improvements</a>
+      </h1>
+    <p class="meta">
+<time datetime="2016-03-16T05:00:00-07:00" pubdate>Wed 16 March 2016</time>    </p>
+</header>
+
+  <div class="entry-content">
+
+<p>Ibis 0.7.0 has been released! The biggest new feature in the release is
+<a href="http://blog.ibis-project.org/kudu-impala-ibis/">Impala-Kudu integration</a>. This is great timing, because <a href="https://github.com/apache/incubator-kudu/tree/master/python">Kudu's Python client</a> went beta officially in its recent 0.7.0 release.</p>
+</div>
+  <footer>
+    <a rel="full-article" href="http://blog.ibis-project.org/release-0.7/">Read On &crarr;</a>
+  </footer>
+  		</article>
+  		<article>
+<header>
+      <h1 class="entry-title">
         <a href="http://blog.ibis-project.org/kudu-impala-ibis/">Interactive Analytics on Dynamic Big Data in Python using Kudu, Impala, and Ibis</a>
       </h1>
     <p class="meta">
@@ -1890,6 +1910,7 @@ commonly in SQL and would like to see it added, please <a href="https://github.c
 </header>
 
   <div class="entry-content">
+
 <p>This blog post describes Ibis's expression type system and how its DSL (domain-specific language) operations work. It's intended for curious users or developers of the project.</p>
 <p>I spent a lot of time thinking about how to create a deferred expression DSL that compiles to SQL and is fluid and intuitive to use. No small task.</p>
 <p>The key things I want to address are:</p>
@@ -1920,7 +1941,7 @@ expressions on data in SQLite database files. Since SQLite ships with Python,
 this is the easiest way to get up and running using the project because you
 don't have to install or administer a database at all.</p>
 <p>To get going, install Ibis if you have not already</p>
-<div class="highlight"><pre>pip install ibis-framework
+<div class="highlight"><pre><span></span>pip install ibis-framework
 </pre></div>
 
 
@@ -1958,7 +1979,7 @@ don't have to install or administer a database at all.</p>
 <p>Check out <a href="http://blog.ibis-project.org/sqlite-crunchbase-quickstart/" target="_blank">this follow-up post</a> for a quick start in using
 Ibis on SQLite with the <a href="http://blog.ibis-project.org/pages/data.html">newly posted</a> Crunchbase dataset.</p>
 <p>Install Ibis from PyPI with</p>
-<div class="highlight"><pre>pip install ibis-framework
+<div class="highlight"><pre><span></span>pip install ibis-framework
 </pre></div>
 
 
@@ -1993,6 +2014,7 @@ Ibis on SQLite with the <a href="http://blog.ibis-project.org/pages/data.html">n
 </header>
 
   <div class="entry-content">
+
 <p><em>Window</em> (also known as <em>analytic</em>) functions are a valuable technique in analytic SQL, but unfortunately they are generally considered to be an <em>advanced</em> skill among SQL programmers. Conceptually, they are relatively simple, and indeed many everyday pandas and R operations can be expressed in SQL through their use. Mechanically, they can be difficult to use, largely because of the SQL syntax.</p>
 <p>Ibis has had comprehensive support for window functions from 0.3 onward, and I invested quite a bit of effort to design an API to make them available to users in a much simpler way. I also made sure that you don't have to be a SQL expert to use them. </div>
   <footer>
@@ -2016,21 +2038,6 @@ Ibis on SQLite with the <a href="http://blog.ibis-project.org/pages/data.html">n
     <a rel="full-article" href="http://blog.ibis-project.org/release-0.4/">Read On &crarr;</a>
   </footer>
   		</article>
-  		<article>
-<header>
-      <h1 class="entry-title">
-        <a href="http://blog.ibis-project.org/design-modeling-analytics-1/">Ibis Design: Modeling high level analytics tasks</a>
-      </h1>
-    <p class="meta">
-<time datetime="2015-08-10T08:00:00-07:00" pubdate>Mon 10 August 2015</time>    </p>
-</header>
-
-  <div class="entry-content">
-<p>Outside of scalability and high performance on large data sets with Python, Ibis is focused on simplifying analytics tasks for end users. By designing a rich pandas-like domain specific language (DSL) embedded in Python code, we can hide away the complexities normally associated with expressing analytical concepts in SQL or some other tool. This post gives some specific examples and shows how we're solving them in Ibis. </div>
-  <footer>
-    <a rel="full-article" href="http://blog.ibis-project.org/design-modeling-analytics-1/">Read On &crarr;</a>
-  </footer>
-  		</article>
 <div class="pagination">
     <a class="prev" href="http://blog.ibis-project.org/index2.html">&larr; Older</a>
 
@@ -2040,6 +2047,9 @@ Ibis on SQLite with the <a href="http://blog.ibis-project.org/pages/data.html">n
   <section>
     <h1>Recent Posts</h1>
     <ul id="recent_posts">
+      <li class="post">
+          <a href="http://blog.ibis-project.org/release-0.7/">Ibis 0.7: Kudu-Impala integration, SQL compiler improvements</a>
+      </li>
       <li class="post">
           <a href="http://blog.ibis-project.org/kudu-impala-ibis/">Interactive Analytics on Dynamic Big Data in Python using Kudu, Impala, and Ibis</a>
       </li>
@@ -2051,9 +2061,6 @@ Ibis on SQLite with the <a href="http://blog.ibis-project.org/pages/data.html">n
       </li>
       <li class="post">
           <a href="http://blog.ibis-project.org/design-types-operations/">Ibis Design: Expression types and operation mechanics</a>
-      </li>
-      <li class="post">
-          <a href="http://blog.ibis-project.org/sqlite-crunchbase-quickstart/">Quickstart on Crunchbase analysis using Ibis and SQLite</a>
       </li>
     </ul>
   </section>
@@ -2077,7 +2084,7 @@ Ibis on SQLite with the <a href="http://blog.ibis-project.org/pages/data.html">n
 </aside>    </div>
   </div>
   <footer role="contentinfo"><p>
-    Copyright &copy;  2015  Cloudera, Inc. &mdash;
+    Copyright &copy;  2015&ndash;2016  Cloudera, Inc. &mdash;
   <span class="credit">Powered by <a href="http://getpelican.com">Pelican</a></span>
 </p></footer>
   <script src="http://blog.ibis-project.org/theme/js/modernizr-2.0.js"></script>

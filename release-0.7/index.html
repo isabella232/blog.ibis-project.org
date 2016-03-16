@@ -4,7 +4,7 @@
 <!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
 <head>
   <meta charset="utf-8">
-  <title>Tags &mdash; Ibis Project Blog</title>
+  <title>Ibis 0.7: Kudu-Impala integration, SQL compiler improvements &mdash; Ibis Project Blog</title>
   <meta name="author" content="Cloudera, Inc.">
 
   <link href="/atom.xml" type="application/atom+xml" rel="alternate"
@@ -1753,6 +1753,8 @@ jQuery(document).ready(function($) {
 
 
 
+
+
   <!-- http://t.co/dKP3o1e -->
   <meta name="HandheldFriendly" content="True">
   <meta name="MobileOptimized" content="320">
@@ -1790,14 +1792,71 @@ jQuery(document).ready(function($) {
   <div id="main">
     <div id="content">
 <div>
-	<article role="article">
-    	<header>
-    		<h1 class="entry-title">Blog Tags</h1>
-    	</header>
+  <article class="hentry" role="article">
+<header>
+      <h1 class="entry-title">Ibis 0.7: Kudu-Impala integration, SQL compiler improvements</h1>
+    <p class="meta">
+<time datetime="2016-03-16T05:00:00-07:00" pubdate>Wed 16 March 2016</time>    </p>
+</header>
 
-	<p>
-	</p>
-	</article>
+  <div class="entry-content">
+
+<p>Ibis 0.7.0 has been released! The biggest new feature in the release is
+<a href="http://blog.ibis-project.org/kudu-impala-ibis/">Impala-Kudu integration</a>. This is great timing, because <a href="https://github.com/apache/incubator-kudu/tree/master/python">Kudu's Python client</a> went beta officially in its recent 0.7.0 release.</p>
+
+
+<p>In addition to many bug fixes, Ibis includes a much smarter SQL compiler for
+more complex pandas-like expressions. For example, consider the following
+operation:</p>
+<div class="highlight"><pre><span></span><span class="n">table</span> <span class="o">=</span> <span class="n">ibis</span><span class="o">.</span><span class="n">table</span><span class="p">([(</span><span class="s1">&#39;flag&#39;</span><span class="p">,</span> <span class="s1">&#39;string&#39;</span><span class="p">),</span>
+                    <span class="p">(</span><span class="s1">&#39;value&#39;</span><span class="p">,</span> <span class="s1">&#39;double&#39;</span><span class="p">)],</span>
+                   <span class="s1">&#39;tbl&#39;</span><span class="p">)</span>
+
+<span class="n">flagged</span> <span class="o">=</span> <span class="n">table</span><span class="p">[</span><span class="n">table</span><span class="o">.</span><span class="n">flag</span> <span class="o">==</span> <span class="s1">&#39;1&#39;</span><span class="p">]</span>
+<span class="n">unflagged</span> <span class="o">=</span> <span class="n">table</span><span class="p">[</span><span class="n">table</span><span class="o">.</span><span class="n">flag</span> <span class="o">==</span> <span class="s1">&#39;0&#39;</span><span class="p">]</span>
+
+<span class="n">fv</span> <span class="o">=</span> <span class="n">flagged</span><span class="o">.</span><span class="n">value</span>
+<span class="n">uv</span> <span class="o">=</span> <span class="n">unflagged</span><span class="o">.</span><span class="n">value</span>
+
+<span class="n">expr</span> <span class="o">=</span> <span class="p">(</span><span class="n">fv</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span> <span class="o">/</span> <span class="n">fv</span><span class="o">.</span><span class="n">sum</span><span class="p">())</span> <span class="o">-</span> <span class="p">(</span><span class="n">uv</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span> <span class="o">/</span> <span class="n">uv</span><span class="o">.</span><span class="n">sum</span><span class="p">())</span>
+</pre></div>
+
+
+<p>Now in Ibis 0.7.0, this expression can be transformed to the correct effective
+SQL:</p>
+<div class="highlight"><pre><span></span><span class="k">SELECT</span> <span class="n">t0</span><span class="p">.</span><span class="o">`</span><span class="n">tmp</span><span class="o">`</span> <span class="o">-</span> <span class="n">t1</span><span class="p">.</span><span class="o">`</span><span class="n">tmp</span><span class="o">`</span> <span class="k">AS</span> <span class="o">`</span><span class="n">tmp</span><span class="o">`</span>
+<span class="k">FROM</span> <span class="p">(</span>
+  <span class="k">SELECT</span> <span class="k">avg</span><span class="p">(</span><span class="o">`</span><span class="n">value</span><span class="o">`</span><span class="p">)</span> <span class="o">/</span> <span class="k">sum</span><span class="p">(</span><span class="o">`</span><span class="n">value</span><span class="o">`</span><span class="p">)</span> <span class="k">AS</span> <span class="o">`</span><span class="n">tmp</span><span class="o">`</span>
+  <span class="k">FROM</span> <span class="n">tbl</span>
+  <span class="k">WHERE</span> <span class="o">`</span><span class="n">flag</span><span class="o">`</span> <span class="o">=</span> <span class="s1">&#39;1&#39;</span>
+<span class="p">)</span> <span class="n">t0</span>
+  <span class="k">CROSS</span> <span class="k">JOIN</span> <span class="p">(</span>
+    <span class="k">SELECT</span> <span class="k">avg</span><span class="p">(</span><span class="o">`</span><span class="n">value</span><span class="o">`</span><span class="p">)</span> <span class="o">/</span> <span class="k">sum</span><span class="p">(</span><span class="o">`</span><span class="n">value</span><span class="o">`</span><span class="p">)</span> <span class="k">AS</span> <span class="o">`</span><span class="n">tmp</span><span class="o">`</span>
+    <span class="k">FROM</span> <span class="n">tbl</span>
+    <span class="k">WHERE</span> <span class="o">`</span><span class="n">flag</span><span class="o">`</span> <span class="o">=</span> <span class="s1">&#39;0&#39;</span>
+  <span class="p">)</span> <span class="n">t1</span>
+</pre></div>
+
+
+<p>Thanks to all who contributed patches:</p>
+<div class="highlight"><pre><span></span>$ git log v0.6.0..v0.7.0 --pretty<span class="o">=</span>format:%aN <span class="p">|</span> sort <span class="p">|</span> uniq -c <span class="p">|</span> sort -rn
+    <span class="m">21</span> Wes McKinney
+     <span class="m">1</span> Uri Laserson
+     <span class="m">1</span> Kristopher Overholt
+</pre></div></div>
+    <footer>
+<p class="meta">
+  <span class="byline author vcard">
+    Posted by <span class="fn">
+        <a href="http://blog.ibis-project.org/author/wes-mckinney.html">Wes McKinney</a>
+    </span>
+  </span>
+<time datetime="2016-03-16T05:00:00-07:00" pubdate>Wed 16 March 2016</time>
+</p><div class="sharing">
+  <a href="http://twitter.com/share" class="twitter-share-button" data-url="http://blog.ibis-project.org/release-0.7/" data-via="wesmckinn" data-counturl="http://blog.ibis-project.org/release-0.7/" >Tweet</a>
+</div>    </footer>
+  </article>
+
 </div>
 <aside class="sidebar">
   <section>

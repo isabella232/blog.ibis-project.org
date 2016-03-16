@@ -1600,8 +1600,10 @@ h1:hover .anchor-link,h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anch
 .highlight-ipynb .err { border: 1px solid #FF0000 } /* Error */
 .highlight-ipynb .k { color: #008000; font-weight: bold } /* Keyword */
 .highlight-ipynb .o { color: #666666 } /* Operator */
+.highlight-ipynb .ch { color: #408080; font-style: italic } /* Comment.Hashbang */
 .highlight-ipynb .cm { color: #408080; font-style: italic } /* Comment.Multiline */
 .highlight-ipynb .cp { color: #BC7A00 } /* Comment.Preproc */
+.highlight-ipynb .cpf { color: #408080; font-style: italic } /* Comment.PreprocFile */
 .highlight-ipynb .c1 { color: #408080; font-style: italic } /* Comment.Single */
 .highlight-ipynb .cs { color: #408080; font-style: italic } /* Comment.Special */
 .highlight-ipynb .gd { color: #A00000 } /* Generic.Deleted */
@@ -1853,8 +1855,8 @@ If you have XCode installed, you can follow these steps to get going:
 In&nbsp;[1]:
 </div>
 <div class="input_area box-flex1">
-<div class="highlight-ipynb"><pre class="ipynb"><span class="kn">import</span> <span class="nn">kudu</span>
-<span class="n">client</span> <span class="o">=</span> <span class="n">kudu</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="s">&#39;quickstart.cloudera&#39;</span><span class="p">,</span> <span class="mi">7051</span><span class="p">)</span>
+<div class="highlight-ipynb"><pre class="ipynb"><span></span><span class="kn">import</span> <span class="nn">kudu</span>
+<span class="n">client</span> <span class="o">=</span> <span class="n">kudu</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="s1">&#39;quickstart.cloudera&#39;</span><span class="p">,</span> <span class="mi">7051</span><span class="p">)</span>
 </pre></div>
 
 </div>
@@ -1870,7 +1872,7 @@ In&nbsp;[1]:
 In&nbsp;[2]:
 </div>
 <div class="input_area box-flex1">
-<div class="highlight-ipynb"><pre class="ipynb"><span class="n">client</span><span class="o">.</span><span class="n">list_tables</span><span class="p">()</span>
+<div class="highlight-ipynb"><pre class="ipynb"><span></span><span class="n">client</span><span class="o">.</span><span class="n">list_tables</span><span class="p">()</span>
 </pre></div>
 
 </div>
@@ -1905,12 +1907,12 @@ In&nbsp;[2]:
 In&nbsp;[3]:
 </div>
 <div class="input_area box-flex1">
-<div class="highlight-ipynb"><pre class="ipynb"><span class="n">builder</span> <span class="o">=</span> <span class="n">kudu</span><span class="o">.</span><span class="n">schema_builder</span><span class="p">()</span>
-<span class="n">builder</span><span class="o">.</span><span class="n">add_column</span><span class="p">(</span><span class="s">&#39;id&#39;</span><span class="p">,</span> <span class="n">kudu</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="bp">False</span><span class="p">)</span>
-<span class="n">builder</span><span class="o">.</span><span class="n">add_column</span><span class="p">(</span><span class="s">&#39;item&#39;</span><span class="p">,</span> <span class="n">kudu</span><span class="o">.</span><span class="n">string</span><span class="p">)</span>
-<span class="n">builder</span><span class="o">.</span><span class="n">add_column</span><span class="p">(</span><span class="s">&#39;price&#39;</span><span class="p">,</span> <span class="n">kudu</span><span class="o">.</span><span class="n">double</span><span class="p">)</span>
+<div class="highlight-ipynb"><pre class="ipynb"><span></span><span class="n">builder</span> <span class="o">=</span> <span class="n">kudu</span><span class="o">.</span><span class="n">schema_builder</span><span class="p">()</span>
+<span class="n">builder</span><span class="o">.</span><span class="n">add_column</span><span class="p">(</span><span class="s1">&#39;id&#39;</span><span class="p">,</span> <span class="n">kudu</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="bp">False</span><span class="p">)</span>
+<span class="n">builder</span><span class="o">.</span><span class="n">add_column</span><span class="p">(</span><span class="s1">&#39;item&#39;</span><span class="p">,</span> <span class="n">kudu</span><span class="o">.</span><span class="n">string</span><span class="p">)</span>
+<span class="n">builder</span><span class="o">.</span><span class="n">add_column</span><span class="p">(</span><span class="s1">&#39;price&#39;</span><span class="p">,</span> <span class="n">kudu</span><span class="o">.</span><span class="n">double</span><span class="p">)</span>
 
-<span class="n">builder</span><span class="o">.</span><span class="n">set_primary_keys</span><span class="p">([</span><span class="s">&#39;id&#39;</span><span class="p">])</span>
+<span class="n">builder</span><span class="o">.</span><span class="n">set_primary_keys</span><span class="p">([</span><span class="s1">&#39;id&#39;</span><span class="p">])</span>
 
 <span class="n">schema</span> <span class="o">=</span> <span class="n">builder</span><span class="o">.</span><span class="n">build</span><span class="p">()</span>
 <span class="n">schema</span>
@@ -1949,10 +1951,10 @@ kudu.Schema {
 In&nbsp;[4]:
 </div>
 <div class="input_area box-flex1">
-<div class="highlight-ipynb"><pre class="ipynb"><span class="k">if</span> <span class="n">client</span><span class="o">.</span><span class="n">table_exists</span><span class="p">(</span><span class="s">&#39;purchases&#39;</span><span class="p">):</span>
-    <span class="n">client</span><span class="o">.</span><span class="n">delete_table</span><span class="p">(</span><span class="s">&#39;purchases&#39;</span><span class="p">)</span>
+<div class="highlight-ipynb"><pre class="ipynb"><span></span><span class="k">if</span> <span class="n">client</span><span class="o">.</span><span class="n">table_exists</span><span class="p">(</span><span class="s1">&#39;purchases&#39;</span><span class="p">):</span>
+    <span class="n">client</span><span class="o">.</span><span class="n">delete_table</span><span class="p">(</span><span class="s1">&#39;purchases&#39;</span><span class="p">)</span>
 
-<span class="n">client</span><span class="o">.</span><span class="n">create_table</span><span class="p">(</span><span class="s">&#39;purchases&#39;</span><span class="p">,</span> <span class="n">schema</span><span class="p">)</span>
+<span class="n">client</span><span class="o">.</span><span class="n">create_table</span><span class="p">(</span><span class="s1">&#39;purchases&#39;</span><span class="p">,</span> <span class="n">schema</span><span class="p">)</span>
 <span class="n">client</span><span class="o">.</span><span class="n">list_tables</span><span class="p">()</span>
 </pre></div>
 
@@ -1988,7 +1990,7 @@ In&nbsp;[4]:
 In&nbsp;[5]:
 </div>
 <div class="input_area box-flex1">
-<div class="highlight-ipynb"><pre class="ipynb"><span class="n">purchases</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">table</span><span class="p">(</span><span class="s">&#39;purchases&#39;</span><span class="p">)</span>
+<div class="highlight-ipynb"><pre class="ipynb"><span></span><span class="n">purchases</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">table</span><span class="p">(</span><span class="s1">&#39;purchases&#39;</span><span class="p">)</span>
 <span class="n">purchases</span>
 </pre></div>
 
@@ -2021,7 +2023,7 @@ In&nbsp;[5]:
 In&nbsp;[6]:
 </div>
 <div class="input_area box-flex1">
-<div class="highlight-ipynb"><pre class="ipynb"><span class="n">purchases</span><span class="o">.</span><span class="n">schema</span>
+<div class="highlight-ipynb"><pre class="ipynb"><span></span><span class="n">purchases</span><span class="o">.</span><span class="n">schema</span>
 </pre></div>
 
 </div>
@@ -2060,19 +2062,19 @@ kudu.Schema {
 In&nbsp;[7]:
 </div>
 <div class="input_area box-flex1">
-<div class="highlight-ipynb"><pre class="ipynb"><span class="n">data</span> <span class="o">=</span> <span class="p">[</span>
-    <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="s">&#39;spam&#39;</span><span class="p">,</span> <span class="mf">2.49</span><span class="p">),</span>
-    <span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="s">&#39;eggs&#39;</span><span class="p">,</span> <span class="mf">1.25</span><span class="p">),</span>
-    <span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="s">&#39;coffee&#39;</span><span class="p">,</span> <span class="mf">2.35</span><span class="p">),</span>
-    <span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="s">&#39;spam&#39;</span><span class="p">,</span> <span class="mf">2.00</span><span class="p">),</span>
-    <span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="s">&#39;eggs&#39;</span><span class="p">,</span> <span class="mf">2.49</span><span class="p">),</span>
-    <span class="p">(</span><span class="mi">6</span><span class="p">,</span> <span class="s">&#39;coffee&#39;</span><span class="p">,</span> <span class="mf">2.75</span><span class="p">),</span>
-    <span class="p">(</span><span class="mi">7</span><span class="p">,</span> <span class="s">&#39;eggs&#39;</span><span class="p">,</span> <span class="mf">2.75</span><span class="p">),</span>
-    <span class="p">(</span><span class="mi">8</span><span class="p">,</span> <span class="s">&#39;coffee&#39;</span><span class="p">,</span> <span class="mf">1.95</span><span class="p">),</span>
-    <span class="p">(</span><span class="mi">9</span><span class="p">,</span> <span class="s">&#39;spam&#39;</span><span class="p">,</span> <span class="mf">3.00</span><span class="p">),</span>
-    <span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="s">&#39;eggs&#39;</span><span class="p">,</span> <span class="mf">2.25</span><span class="p">),</span>
-    <span class="p">(</span><span class="mi">11</span><span class="p">,</span> <span class="s">&#39;eggs&#39;</span><span class="p">,</span> <span class="mf">2.00</span><span class="p">),</span>
-    <span class="p">(</span><span class="mi">12</span><span class="p">,</span> <span class="s">&#39;coffee&#39;</span><span class="p">,</span> <span class="mf">2.35</span><span class="p">)</span>
+<div class="highlight-ipynb"><pre class="ipynb"><span></span><span class="n">data</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;spam&#39;</span><span class="p">,</span> <span class="mf">2.49</span><span class="p">),</span>
+    <span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="s1">&#39;eggs&#39;</span><span class="p">,</span> <span class="mf">1.25</span><span class="p">),</span>
+    <span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="s1">&#39;coffee&#39;</span><span class="p">,</span> <span class="mf">2.35</span><span class="p">),</span>
+    <span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="s1">&#39;spam&#39;</span><span class="p">,</span> <span class="mf">2.00</span><span class="p">),</span>
+    <span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="s1">&#39;eggs&#39;</span><span class="p">,</span> <span class="mf">2.49</span><span class="p">),</span>
+    <span class="p">(</span><span class="mi">6</span><span class="p">,</span> <span class="s1">&#39;coffee&#39;</span><span class="p">,</span> <span class="mf">2.75</span><span class="p">),</span>
+    <span class="p">(</span><span class="mi">7</span><span class="p">,</span> <span class="s1">&#39;eggs&#39;</span><span class="p">,</span> <span class="mf">2.75</span><span class="p">),</span>
+    <span class="p">(</span><span class="mi">8</span><span class="p">,</span> <span class="s1">&#39;coffee&#39;</span><span class="p">,</span> <span class="mf">1.95</span><span class="p">),</span>
+    <span class="p">(</span><span class="mi">9</span><span class="p">,</span> <span class="s1">&#39;spam&#39;</span><span class="p">,</span> <span class="mf">3.00</span><span class="p">),</span>
+    <span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="s1">&#39;eggs&#39;</span><span class="p">,</span> <span class="mf">2.25</span><span class="p">),</span>
+    <span class="p">(</span><span class="mi">11</span><span class="p">,</span> <span class="s1">&#39;eggs&#39;</span><span class="p">,</span> <span class="mf">2.00</span><span class="p">),</span>
+    <span class="p">(</span><span class="mi">12</span><span class="p">,</span> <span class="s1">&#39;coffee&#39;</span><span class="p">,</span> <span class="mf">2.35</span><span class="p">)</span>
 <span class="p">]</span>
 </pre></div>
 
@@ -2089,7 +2091,7 @@ In&nbsp;[7]:
 In&nbsp;[8]:
 </div>
 <div class="input_area box-flex1">
-<div class="highlight-ipynb"><pre class="ipynb"><span class="n">session</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">new_session</span><span class="p">()</span>
+<div class="highlight-ipynb"><pre class="ipynb"><span></span><span class="n">session</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">new_session</span><span class="p">()</span>
 </pre></div>
 
 </div>
@@ -2105,11 +2107,11 @@ In&nbsp;[8]:
 In&nbsp;[9]:
 </div>
 <div class="input_area box-flex1">
-<div class="highlight-ipynb"><pre class="ipynb"><span class="k">for</span> <span class="n">_id</span><span class="p">,</span> <span class="n">_item</span><span class="p">,</span> <span class="n">_price</span> <span class="ow">in</span> <span class="n">data</span><span class="p">:</span>
+<div class="highlight-ipynb"><pre class="ipynb"><span></span><span class="k">for</span> <span class="n">_id</span><span class="p">,</span> <span class="n">_item</span><span class="p">,</span> <span class="n">_price</span> <span class="ow">in</span> <span class="n">data</span><span class="p">:</span>
     <span class="n">op</span> <span class="o">=</span> <span class="n">purchases</span><span class="o">.</span><span class="n">new_insert</span><span class="p">()</span>
-    <span class="n">op</span><span class="p">[</span><span class="s">&#39;id&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">_id</span>
-    <span class="n">op</span><span class="p">[</span><span class="s">&#39;item&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">_item</span>
-    <span class="n">op</span><span class="p">[</span><span class="s">&#39;price&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">_price</span>
+    <span class="n">op</span><span class="p">[</span><span class="s1">&#39;id&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">_id</span>
+    <span class="n">op</span><span class="p">[</span><span class="s1">&#39;item&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">_item</span>
+    <span class="n">op</span><span class="p">[</span><span class="s1">&#39;price&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">_price</span>
     <span class="n">session</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="n">op</span><span class="p">)</span>
     
 <span class="n">session</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
@@ -2128,7 +2130,7 @@ In&nbsp;[9]:
 In&nbsp;[10]:
 </div>
 <div class="input_area box-flex1">
-<div class="highlight-ipynb"><pre class="ipynb"><span class="n">scanner</span> <span class="o">=</span> <span class="n">purchases</span><span class="o">.</span><span class="n">scanner</span><span class="p">()</span>
+<div class="highlight-ipynb"><pre class="ipynb"><span></span><span class="n">scanner</span> <span class="o">=</span> <span class="n">purchases</span><span class="o">.</span><span class="n">scanner</span><span class="p">()</span>
 </pre></div>
 
 </div>
@@ -2144,7 +2146,7 @@ In&nbsp;[10]:
 In&nbsp;[11]:
 </div>
 <div class="input_area box-flex1">
-<div class="highlight-ipynb"><pre class="ipynb"><span class="n">scanner</span><span class="o">.</span><span class="n">open</span><span class="p">()</span>
+<div class="highlight-ipynb"><pre class="ipynb"><span></span><span class="n">scanner</span><span class="o">.</span><span class="n">open</span><span class="p">()</span>
 <span class="n">scanner</span><span class="o">.</span><span class="n">read_all_tuples</span><span class="p">()</span>
 </pre></div>
 
@@ -2191,8 +2193,8 @@ In&nbsp;[11]:
 In&nbsp;[12]:
 </div>
 <div class="input_area box-flex1">
-<div class="highlight-ipynb"><pre class="ipynb"><span class="n">scanner</span> <span class="o">=</span> <span class="n">purchases</span><span class="o">.</span><span class="n">scanner</span><span class="p">()</span>
-<span class="n">scanner</span><span class="o">.</span><span class="n">add_predicate</span><span class="p">(</span><span class="n">purchases</span><span class="p">[</span><span class="s">&#39;item&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s">&#39;spam&#39;</span><span class="p">)</span>
+<div class="highlight-ipynb"><pre class="ipynb"><span></span><span class="n">scanner</span> <span class="o">=</span> <span class="n">purchases</span><span class="o">.</span><span class="n">scanner</span><span class="p">()</span>
+<span class="n">scanner</span><span class="o">.</span><span class="n">add_predicate</span><span class="p">(</span><span class="n">purchases</span><span class="p">[</span><span class="s1">&#39;item&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;spam&#39;</span><span class="p">)</span>
 <span class="n">scanner</span><span class="o">.</span><span class="n">open</span><span class="p">()</span>
 <span class="n">scanner</span><span class="o">.</span><span class="n">read_all_tuples</span><span class="p">()</span>
 </pre></div>
@@ -2226,8 +2228,8 @@ In&nbsp;[12]:
 In&nbsp;[13]:
 </div>
 <div class="input_area box-flex1">
-<div class="highlight-ipynb"><pre class="ipynb"><span class="n">scanner</span> <span class="o">=</span> <span class="n">purchases</span><span class="o">.</span><span class="n">scanner</span><span class="p">()</span>
-<span class="n">id_col</span> <span class="o">=</span> <span class="n">purchases</span><span class="p">[</span><span class="s">&#39;id&#39;</span><span class="p">]</span>
+<div class="highlight-ipynb"><pre class="ipynb"><span></span><span class="n">scanner</span> <span class="o">=</span> <span class="n">purchases</span><span class="o">.</span><span class="n">scanner</span><span class="p">()</span>
+<span class="n">id_col</span> <span class="o">=</span> <span class="n">purchases</span><span class="p">[</span><span class="s1">&#39;id&#39;</span><span class="p">]</span>
 <span class="n">scanner</span><span class="o">.</span><span class="n">add_predicates</span><span class="p">([</span><span class="n">id_col</span> <span class="o">&gt;=</span> <span class="mi">5</span><span class="p">,</span> <span class="n">id_col</span> <span class="o">&lt;=</span> <span class="mi">10</span><span class="p">])</span>
 <span class="n">scanner</span><span class="o">.</span><span class="n">open</span><span class="p">()</span>
 <span class="n">scanner</span><span class="o">.</span><span class="n">read_all_tuples</span><span class="p">()</span>
@@ -2278,10 +2280,10 @@ In&nbsp;[13]:
 In&nbsp;[14]:
 </div>
 <div class="input_area box-flex1">
-<div class="highlight-ipynb"><pre class="ipynb"><span class="kn">import</span> <span class="nn">ibis</span>
+<div class="highlight-ipynb"><pre class="ipynb"><span></span><span class="kn">import</span> <span class="nn">ibis</span>
 <span class="n">ibis</span><span class="o">.</span><span class="n">options</span><span class="o">.</span><span class="n">interactive</span> <span class="o">=</span> <span class="bp">True</span>
 
-<span class="n">host</span> <span class="o">=</span> <span class="s">&#39;quickstart.cloudera&#39;</span>
+<span class="n">host</span> <span class="o">=</span> <span class="s1">&#39;quickstart.cloudera&#39;</span>
 
 <span class="n">hdfs</span> <span class="o">=</span> <span class="n">ibis</span><span class="o">.</span><span class="n">hdfs_connect</span><span class="p">(</span><span class="n">host</span><span class="p">,</span> <span class="n">port</span><span class="o">=</span><span class="mi">50070</span><span class="p">)</span>
 <span class="n">ic</span> <span class="o">=</span> <span class="n">ibis</span><span class="o">.</span><span class="n">impala</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="n">host</span><span class="p">,</span> <span class="n">port</span><span class="o">=</span><span class="mi">21050</span><span class="p">,</span> <span class="n">hdfs_client</span><span class="o">=</span><span class="n">hdfs</span><span class="p">)</span>
@@ -2300,7 +2302,7 @@ In&nbsp;[14]:
 In&nbsp;[15]:
 </div>
 <div class="input_area box-flex1">
-<div class="highlight-ipynb"><pre class="ipynb"><span class="n">ic</span><span class="o">.</span><span class="n">kudu</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="n">host</span><span class="p">,</span> <span class="mi">7051</span><span class="p">)</span>
+<div class="highlight-ipynb"><pre class="ipynb"><span></span><span class="n">ic</span><span class="o">.</span><span class="n">kudu</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="n">host</span><span class="p">,</span> <span class="mi">7051</span><span class="p">)</span>
 </pre></div>
 
 </div>
@@ -2316,7 +2318,7 @@ In&nbsp;[15]:
 In&nbsp;[16]:
 </div>
 <div class="input_area box-flex1">
-<div class="highlight-ipynb"><pre class="ipynb"><span class="n">ic</span><span class="o">.</span><span class="n">kudu</span><span class="o">.</span><span class="n">list_tables</span><span class="p">()</span>
+<div class="highlight-ipynb"><pre class="ipynb"><span></span><span class="n">ic</span><span class="o">.</span><span class="n">kudu</span><span class="o">.</span><span class="n">list_tables</span><span class="p">()</span>
 </pre></div>
 
 </div>
@@ -2351,7 +2353,7 @@ In&nbsp;[16]:
 In&nbsp;[17]:
 </div>
 <div class="input_area box-flex1">
-<div class="highlight-ipynb"><pre class="ipynb"><span class="n">purchases</span> <span class="o">=</span> <span class="n">ic</span><span class="o">.</span><span class="n">kudu</span><span class="o">.</span><span class="n">table</span><span class="p">(</span><span class="s">&#39;purchases&#39;</span><span class="p">)</span>
+<div class="highlight-ipynb"><pre class="ipynb"><span></span><span class="n">purchases</span> <span class="o">=</span> <span class="n">ic</span><span class="o">.</span><span class="n">kudu</span><span class="o">.</span><span class="n">table</span><span class="p">(</span><span class="s1">&#39;purchases&#39;</span><span class="p">)</span>
 </pre></div>
 
 </div>
@@ -2364,7 +2366,7 @@ In&nbsp;[17]:
 In&nbsp;[18]:
 </div>
 <div class="input_area box-flex1">
-<div class="highlight-ipynb"><pre class="ipynb"><span class="n">purchases</span>
+<div class="highlight-ipynb"><pre class="ipynb"><span></span><span class="n">purchases</span>
 </pre></div>
 
 </div>
@@ -2411,7 +2413,7 @@ In&nbsp;[18]:
 In&nbsp;[19]:
 </div>
 <div class="input_area box-flex1">
-<div class="highlight-ipynb"><pre class="ipynb"><span class="n">purchases</span><span class="p">[</span><span class="n">purchases</span><span class="o">.</span><span class="n">item</span> <span class="o">==</span> <span class="s">&#39;spam&#39;</span><span class="p">]</span>
+<div class="highlight-ipynb"><pre class="ipynb"><span></span><span class="n">purchases</span><span class="p">[</span><span class="n">purchases</span><span class="o">.</span><span class="n">item</span> <span class="o">==</span> <span class="s1">&#39;spam&#39;</span><span class="p">]</span>
 </pre></div>
 
 </div>
@@ -2446,7 +2448,7 @@ In&nbsp;[19]:
 In&nbsp;[20]:
 </div>
 <div class="input_area box-flex1">
-<div class="highlight-ipynb"><pre class="ipynb"><span class="n">purchases</span><span class="o">.</span><span class="n">group_by</span><span class="p">(</span><span class="s">&#39;item&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">price</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+<div class="highlight-ipynb"><pre class="ipynb"><span></span><span class="n">purchases</span><span class="o">.</span><span class="n">group_by</span><span class="p">(</span><span class="s1">&#39;item&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">price</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
 </pre></div>
 
 </div>
@@ -2495,21 +2497,21 @@ In&nbsp;[20]:
 In&nbsp;[21]:
 </div>
 <div class="input_area box-flex1">
-<div class="highlight-ipynb"><pre class="ipynb"><span class="n">schema</span> <span class="o">=</span> <span class="n">ibis</span><span class="o">.</span><span class="n">schema</span><span class="p">([(</span><span class="s">&#39;foo&#39;</span><span class="p">,</span> <span class="s">&#39;int32&#39;</span><span class="p">),</span>
-                      <span class="p">(</span><span class="s">&#39;bar&#39;</span><span class="p">,</span> <span class="s">&#39;string&#39;</span><span class="p">),</span>
-                      <span class="p">(</span><span class="s">&#39;baz&#39;</span><span class="p">,</span> <span class="s">&#39;double&#39;</span><span class="p">)])</span>
+<div class="highlight-ipynb"><pre class="ipynb"><span></span><span class="n">schema</span> <span class="o">=</span> <span class="n">ibis</span><span class="o">.</span><span class="n">schema</span><span class="p">([(</span><span class="s1">&#39;foo&#39;</span><span class="p">,</span> <span class="s1">&#39;int32&#39;</span><span class="p">),</span>
+                      <span class="p">(</span><span class="s1">&#39;bar&#39;</span><span class="p">,</span> <span class="s1">&#39;string&#39;</span><span class="p">),</span>
+                      <span class="p">(</span><span class="s1">&#39;baz&#39;</span><span class="p">,</span> <span class="s1">&#39;double&#39;</span><span class="p">)])</span>
 
-<span class="k">if</span> <span class="n">ic</span><span class="o">.</span><span class="n">exists_database</span><span class="p">(</span><span class="s">&#39;kudu_tables&#39;</span><span class="p">):</span>
-    <span class="n">ic</span><span class="o">.</span><span class="n">drop_database</span><span class="p">(</span><span class="s">&#39;kudu_tables&#39;</span><span class="p">,</span> <span class="n">force</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+<span class="k">if</span> <span class="n">ic</span><span class="o">.</span><span class="n">exists_database</span><span class="p">(</span><span class="s1">&#39;kudu_tables&#39;</span><span class="p">):</span>
+    <span class="n">ic</span><span class="o">.</span><span class="n">drop_database</span><span class="p">(</span><span class="s1">&#39;kudu_tables&#39;</span><span class="p">,</span> <span class="n">force</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
 
-<span class="n">ic</span><span class="o">.</span><span class="n">create_database</span><span class="p">(</span><span class="s">&#39;kudu_tables&#39;</span><span class="p">)</span>
-<span class="n">impala_name</span> <span class="o">=</span> <span class="s">&#39;example1&#39;</span>
-<span class="n">kudu_name</span> <span class="o">=</span> <span class="s">&#39;example1-kudu-table&#39;</span>
+<span class="n">ic</span><span class="o">.</span><span class="n">create_database</span><span class="p">(</span><span class="s1">&#39;kudu_tables&#39;</span><span class="p">)</span>
+<span class="n">impala_name</span> <span class="o">=</span> <span class="s1">&#39;example1&#39;</span>
+<span class="n">kudu_name</span> <span class="o">=</span> <span class="s1">&#39;example1-kudu-table&#39;</span>
 <span class="n">ic</span><span class="o">.</span><span class="n">kudu</span><span class="o">.</span><span class="n">create_table</span><span class="p">(</span><span class="n">impala_name</span><span class="p">,</span> <span class="n">kudu_name</span><span class="p">,</span> <span class="n">schema</span><span class="o">=</span><span class="n">schema</span><span class="p">,</span>
-                     <span class="n">primary_keys</span><span class="o">=</span><span class="p">[</span><span class="s">&#39;foo&#39;</span><span class="p">],</span>
-                     <span class="n">database</span><span class="o">=</span><span class="s">&#39;kudu_tables&#39;</span><span class="p">)</span>
+                     <span class="n">primary_keys</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;foo&#39;</span><span class="p">],</span>
+                     <span class="n">database</span><span class="o">=</span><span class="s1">&#39;kudu_tables&#39;</span><span class="p">)</span>
 
-<span class="n">db</span> <span class="o">=</span> <span class="n">ic</span><span class="o">.</span><span class="n">database</span><span class="p">(</span><span class="s">&#39;kudu_tables&#39;</span><span class="p">)</span>
+<span class="n">db</span> <span class="o">=</span> <span class="n">ic</span><span class="o">.</span><span class="n">database</span><span class="p">(</span><span class="s1">&#39;kudu_tables&#39;</span><span class="p">)</span>
 </pre></div>
 
 </div>
@@ -2522,7 +2524,7 @@ In&nbsp;[21]:
 In&nbsp;[22]:
 </div>
 <div class="input_area box-flex1">
-<div class="highlight-ipynb"><pre class="ipynb"><span class="n">impala_table</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">table</span><span class="p">(</span><span class="n">impala_name</span><span class="p">)</span>
+<div class="highlight-ipynb"><pre class="ipynb"><span></span><span class="n">impala_table</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">table</span><span class="p">(</span><span class="n">impala_name</span><span class="p">)</span>
 <span class="n">impala_table</span><span class="o">.</span><span class="n">schema</span><span class="p">()</span>
 </pre></div>
 
@@ -2562,7 +2564,7 @@ ibis.Schema {
 In&nbsp;[23]:
 </div>
 <div class="input_area box-flex1">
-<div class="highlight-ipynb"><pre class="ipynb"><span class="n">client</span><span class="o">.</span><span class="n">list_tables</span><span class="p">()</span>
+<div class="highlight-ipynb"><pre class="ipynb"><span></span><span class="n">client</span><span class="o">.</span><span class="n">list_tables</span><span class="p">()</span>
 </pre></div>
 
 </div>
@@ -2594,7 +2596,7 @@ In&nbsp;[23]:
 In&nbsp;[24]:
 </div>
 <div class="input_area box-flex1">
-<div class="highlight-ipynb"><pre class="ipynb"><span class="n">example1</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">table</span><span class="p">(</span><span class="n">kudu_name</span><span class="p">)</span>
+<div class="highlight-ipynb"><pre class="ipynb"><span></span><span class="n">example1</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">table</span><span class="p">(</span><span class="n">kudu_name</span><span class="p">)</span>
 </pre></div>
 
 </div>
@@ -2607,7 +2609,7 @@ In&nbsp;[24]:
 In&nbsp;[25]:
 </div>
 <div class="input_area box-flex1">
-<div class="highlight-ipynb"><pre class="ipynb"><span class="n">example1</span><span class="o">.</span><span class="n">schema</span>
+<div class="highlight-ipynb"><pre class="ipynb"><span></span><span class="n">example1</span><span class="o">.</span><span class="n">schema</span>
 </pre></div>
 
 </div>
@@ -2647,11 +2649,11 @@ kudu.Schema {
 In&nbsp;[26]:
 </div>
 <div class="input_area box-flex1">
-<div class="highlight-ipynb"><pre class="ipynb"><span class="n">expr</span> <span class="o">=</span> <span class="n">purchases</span><span class="p">[</span><span class="n">purchases</span><span class="o">.</span><span class="n">item</span> <span class="o">==</span> <span class="s">&#39;spam&#39;</span><span class="p">]</span>
+<div class="highlight-ipynb"><pre class="ipynb"><span></span><span class="n">expr</span> <span class="o">=</span> <span class="n">purchases</span><span class="p">[</span><span class="n">purchases</span><span class="o">.</span><span class="n">item</span> <span class="o">==</span> <span class="s1">&#39;spam&#39;</span><span class="p">]</span>
 
-<span class="n">ic</span><span class="o">.</span><span class="n">kudu</span><span class="o">.</span><span class="n">create_table</span><span class="p">(</span><span class="s">&#39;example2&#39;</span><span class="p">,</span> <span class="s">&#39;example2-kudu&#39;</span><span class="p">,</span> <span class="n">obj</span><span class="o">=</span><span class="n">expr</span><span class="p">,</span>
-                     <span class="n">primary_keys</span><span class="o">=</span><span class="p">[</span><span class="s">&#39;id&#39;</span><span class="p">],</span>
-                     <span class="n">database</span><span class="o">=</span><span class="s">&#39;kudu_tables&#39;</span><span class="p">)</span>
+<span class="n">ic</span><span class="o">.</span><span class="n">kudu</span><span class="o">.</span><span class="n">create_table</span><span class="p">(</span><span class="s1">&#39;example2&#39;</span><span class="p">,</span> <span class="s1">&#39;example2-kudu&#39;</span><span class="p">,</span> <span class="n">obj</span><span class="o">=</span><span class="n">expr</span><span class="p">,</span>
+                     <span class="n">primary_keys</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;id&#39;</span><span class="p">],</span>
+                     <span class="n">database</span><span class="o">=</span><span class="s1">&#39;kudu_tables&#39;</span><span class="p">)</span>
 </pre></div>
 
 </div>
@@ -2664,7 +2666,7 @@ In&nbsp;[26]:
 In&nbsp;[27]:
 </div>
 <div class="input_area box-flex1">
-<div class="highlight-ipynb"><pre class="ipynb"><span class="n">db</span><span class="o">.</span><span class="n">example2</span>
+<div class="highlight-ipynb"><pre class="ipynb"><span></span><span class="n">db</span><span class="o">.</span><span class="n">example2</span>
 </pre></div>
 
 </div>
@@ -2702,7 +2704,7 @@ In&nbsp;[27]:
 In&nbsp;[28]:
 </div>
 <div class="input_area box-flex1">
-<div class="highlight-ipynb"><pre class="ipynb"><span class="n">example2_data</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">table</span><span class="p">(</span><span class="s">&#39;example2-kudu&#39;</span><span class="p">)</span>
+<div class="highlight-ipynb"><pre class="ipynb"><span></span><span class="n">example2_data</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">table</span><span class="p">(</span><span class="s1">&#39;example2-kudu&#39;</span><span class="p">)</span>
 <span class="n">scanner</span> <span class="o">=</span> <span class="n">example2_data</span><span class="o">.</span><span class="n">scanner</span><span class="p">()</span>
 <span class="n">scanner</span><span class="o">.</span><span class="n">open</span><span class="p">()</span>
 <span class="n">scanner</span><span class="o">.</span><span class="n">read_all_tuples</span><span class="p">()</span>
@@ -2764,6 +2766,9 @@ In&nbsp;[28]:
     <h1>Recent Posts</h1>
     <ul id="recent_posts">
       <li class="post">
+          <a href="http://blog.ibis-project.org/release-0.7/">Ibis 0.7: Kudu-Impala integration, SQL compiler improvements</a>
+      </li>
+      <li class="post">
           <a href="http://blog.ibis-project.org/kudu-impala-ibis/">Interactive Analytics on Dynamic Big Data in Python using Kudu, Impala, and Ibis</a>
       </li>
       <li class="post">
@@ -2774,9 +2779,6 @@ In&nbsp;[28]:
       </li>
       <li class="post">
           <a href="http://blog.ibis-project.org/design-types-operations/">Ibis Design: Expression types and operation mechanics</a>
-      </li>
-      <li class="post">
-          <a href="http://blog.ibis-project.org/sqlite-crunchbase-quickstart/">Quickstart on Crunchbase analysis using Ibis and SQLite</a>
       </li>
     </ul>
   </section>
@@ -2800,7 +2802,7 @@ In&nbsp;[28]:
 </aside>    </div>
   </div>
   <footer role="contentinfo"><p>
-    Copyright &copy;  2015  Cloudera, Inc. &mdash;
+    Copyright &copy;  2015&ndash;2016  Cloudera, Inc. &mdash;
   <span class="credit">Powered by <a href="http://getpelican.com">Pelican</a></span>
 </p></footer>
   <script src="http://blog.ibis-project.org/theme/js/modernizr-2.0.js"></script>

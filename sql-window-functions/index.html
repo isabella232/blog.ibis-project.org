@@ -1600,8 +1600,10 @@ h1:hover .anchor-link,h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anch
 .highlight-ipynb .err { border: 1px solid #FF0000 } /* Error */
 .highlight-ipynb .k { color: #008000; font-weight: bold } /* Keyword */
 .highlight-ipynb .o { color: #666666 } /* Operator */
+.highlight-ipynb .ch { color: #408080; font-style: italic } /* Comment.Hashbang */
 .highlight-ipynb .cm { color: #408080; font-style: italic } /* Comment.Multiline */
 .highlight-ipynb .cp { color: #BC7A00 } /* Comment.Preproc */
+.highlight-ipynb .cpf { color: #408080; font-style: italic } /* Comment.PreprocFile */
 .highlight-ipynb .c1 { color: #408080; font-style: italic } /* Comment.Single */
 .highlight-ipynb .cs { color: #408080; font-style: italic } /* Comment.Special */
 .highlight-ipynb .gd { color: #A00000 } /* Generic.Deleted */
@@ -1800,6 +1802,7 @@ jQuery(document).ready(function($) {
   <div class="entry-content"><p>
 <div class="text_cell_render border-box-sizing rendered_html">
 
+
 <p><em>Window</em> (also known as <em>analytic</em>) functions are a valuable technique in analytic SQL, but unfortunately they are generally considered to be an <em>advanced</em> skill among SQL programmers. Conceptually, they are relatively simple, and indeed many everyday pandas and R operations can be expressed in SQL through their use. Mechanically, they can be difficult to use, largely because of the SQL syntax.</p>
 <p>Ibis has had comprehensive support for window functions from 0.3 onward, and I invested quite a bit of effort to design an API to make them available to users in a much simpler way. I also made sure that you don't have to be a SQL expert to use them. </p>
 <h1 id="what-are-sql-window-functions">What are SQL window functions?</h1>
@@ -1848,12 +1851,12 @@ FROM df</code></pre>
 In&nbsp;[1]:
 </div>
 <div class="input_area box-flex1">
-<div class="highlight-ipynb"><pre class="ipynb"><span class="kn">import</span> <span class="nn">ibis</span>
+<div class="highlight-ipynb"><pre class="ipynb"><span></span><span class="kn">import</span> <span class="nn">ibis</span>
 <span class="n">ibis</span><span class="o">.</span><span class="n">options</span><span class="o">.</span><span class="n">interactive</span> <span class="o">=</span> <span class="bp">True</span>
 
-<span class="n">con</span> <span class="o">=</span> <span class="n">ibis</span><span class="o">.</span><span class="n">impala</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="s">&#39;bottou01.sjc.cloudera.com&#39;</span><span class="p">)</span>
+<span class="n">con</span> <span class="o">=</span> <span class="n">ibis</span><span class="o">.</span><span class="n">impala</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="s1">&#39;bottou01.sjc.cloudera.com&#39;</span><span class="p">)</span>
 
-<span class="n">db</span> <span class="o">=</span> <span class="n">con</span><span class="o">.</span><span class="n">database</span><span class="p">(</span><span class="s">&#39;wes&#39;</span><span class="p">)</span>
+<span class="n">db</span> <span class="o">=</span> <span class="n">con</span><span class="o">.</span><span class="n">database</span><span class="p">(</span><span class="s1">&#39;wes&#39;</span><span class="p">)</span>
 <span class="n">table</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">airlines_parquet</span>
 </pre></div>
 
@@ -1870,7 +1873,7 @@ In&nbsp;[1]:
 In&nbsp;[2]:
 </div>
 <div class="input_area box-flex1">
-<div class="highlight-ipynb"><pre class="ipynb"><span class="n">expr</span> <span class="o">=</span> <span class="n">table</span><span class="o">.</span><span class="n">arrdelay</span> <span class="o">-</span> <span class="n">table</span><span class="o">.</span><span class="n">arrdelay</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+<div class="highlight-ipynb"><pre class="ipynb"><span></span><span class="n">expr</span> <span class="o">=</span> <span class="n">table</span><span class="o">.</span><span class="n">arrdelay</span> <span class="o">-</span> <span class="n">table</span><span class="o">.</span><span class="n">arrdelay</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
 <span class="n">expr</span><span class="o">.</span><span class="n">execute</span><span class="p">()[:</span><span class="mi">10</span><span class="p">]</span>
 </pre></div>
 
@@ -1916,9 +1919,9 @@ Name: tmp, dtype: float64
 In&nbsp;[3]:
 </div>
 <div class="input_area box-flex1">
-<div class="highlight-ipynb"><pre class="ipynb"><span class="n">t</span> <span class="o">=</span> <span class="n">table</span>
+<div class="highlight-ipynb"><pre class="ipynb"><span></span><span class="n">t</span> <span class="o">=</span> <span class="n">table</span>
 <span class="n">expr</span> <span class="o">=</span> <span class="n">t</span><span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">arrdelay</span><span class="p">,</span> <span class="n">t</span><span class="o">.</span><span class="n">arrdelay</span><span class="o">.</span><span class="n">mean</span><span class="p">(),</span> 
-         <span class="p">(</span><span class="n">t</span><span class="o">.</span><span class="n">arrdelay</span> <span class="o">-</span> <span class="n">t</span><span class="o">.</span><span class="n">arrdelay</span><span class="o">.</span><span class="n">mean</span><span class="p">())</span><span class="o">.</span><span class="n">name</span><span class="p">(</span><span class="s">&#39;demeaned&#39;</span><span class="p">)]</span>
+         <span class="p">(</span><span class="n">t</span><span class="o">.</span><span class="n">arrdelay</span> <span class="o">-</span> <span class="n">t</span><span class="o">.</span><span class="n">arrdelay</span><span class="o">.</span><span class="n">mean</span><span class="p">())</span><span class="o">.</span><span class="n">name</span><span class="p">(</span><span class="s1">&#39;demeaned&#39;</span><span class="p">)]</span>
 <span class="n">expr</span><span class="o">.</span><span class="n">limit</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span>
 </pre></div>
 
@@ -1964,12 +1967,12 @@ In&nbsp;[3]:
 In&nbsp;[4]:
 </div>
 <div class="input_area box-flex1">
-<div class="highlight-ipynb"><pre class="ipynb"><span class="n">t</span> <span class="o">=</span> <span class="n">table</span><span class="p">[</span><span class="s">&#39;arrdelay&#39;</span><span class="p">,</span> <span class="s">&#39;dest&#39;</span><span class="p">]</span>
-<span class="n">expr</span> <span class="o">=</span> <span class="p">(</span><span class="n">t</span><span class="o">.</span><span class="n">group_by</span><span class="p">(</span><span class="s">&#39;dest&#39;</span><span class="p">)</span>
+<div class="highlight-ipynb"><pre class="ipynb"><span></span><span class="n">t</span> <span class="o">=</span> <span class="n">table</span><span class="p">[</span><span class="s1">&#39;arrdelay&#39;</span><span class="p">,</span> <span class="s1">&#39;dest&#39;</span><span class="p">]</span>
+<span class="n">expr</span> <span class="o">=</span> <span class="p">(</span><span class="n">t</span><span class="o">.</span><span class="n">group_by</span><span class="p">(</span><span class="s1">&#39;dest&#39;</span><span class="p">)</span>
         <span class="o">.</span><span class="n">mutate</span><span class="p">(</span><span class="n">dest_avg</span><span class="o">=</span><span class="n">t</span><span class="o">.</span><span class="n">arrdelay</span><span class="o">.</span><span class="n">mean</span><span class="p">(),</span>
                 <span class="n">dev</span><span class="o">=</span><span class="n">t</span><span class="o">.</span><span class="n">arrdelay</span> <span class="o">-</span> <span class="n">t</span><span class="o">.</span><span class="n">arrdelay</span><span class="o">.</span><span class="n">mean</span><span class="p">()))</span>
 
-<span class="n">worst</span> <span class="o">=</span> <span class="n">expr</span><span class="p">[</span><span class="n">expr</span><span class="o">.</span><span class="n">dev</span><span class="o">.</span><span class="n">notnull</span><span class="p">()]</span><span class="o">.</span><span class="n">sort_by</span><span class="p">(</span><span class="n">ibis</span><span class="o">.</span><span class="n">desc</span><span class="p">(</span><span class="s">&#39;dev&#39;</span><span class="p">))</span><span class="o">.</span><span class="n">limit</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span>
+<span class="n">worst</span> <span class="o">=</span> <span class="n">expr</span><span class="p">[</span><span class="n">expr</span><span class="o">.</span><span class="n">dev</span><span class="o">.</span><span class="n">notnull</span><span class="p">()]</span><span class="o">.</span><span class="n">sort_by</span><span class="p">(</span><span class="n">ibis</span><span class="o">.</span><span class="n">desc</span><span class="p">(</span><span class="s1">&#39;dev&#39;</span><span class="p">))</span><span class="o">.</span><span class="n">limit</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span>
 <span class="n">worst</span>
 </pre></div>
 
@@ -2028,16 +2031,16 @@ LIMIT 10</code></pre>
 In&nbsp;[5]:
 </div>
 <div class="input_area box-flex1">
-<div class="highlight-ipynb"><pre class="ipynb"><span class="n">w</span> <span class="o">=</span> <span class="n">ibis</span><span class="o">.</span><span class="n">window</span><span class="p">(</span><span class="n">group_by</span><span class="o">=</span><span class="n">table</span><span class="o">.</span><span class="n">dest</span><span class="p">,</span> <span class="n">order_by</span><span class="o">=</span><span class="n">table</span><span class="o">.</span><span class="n">year</span><span class="p">)</span>
+<div class="highlight-ipynb"><pre class="ipynb"><span></span><span class="n">w</span> <span class="o">=</span> <span class="n">ibis</span><span class="o">.</span><span class="n">window</span><span class="p">(</span><span class="n">group_by</span><span class="o">=</span><span class="n">table</span><span class="o">.</span><span class="n">dest</span><span class="p">,</span> <span class="n">order_by</span><span class="o">=</span><span class="n">table</span><span class="o">.</span><span class="n">year</span><span class="p">)</span>
 
-<span class="n">yearly_avg_delay</span> <span class="o">=</span> <span class="p">(</span><span class="n">table</span><span class="o">.</span><span class="n">group_by</span><span class="p">([</span><span class="s">&#39;dest&#39;</span><span class="p">,</span> <span class="s">&#39;year&#39;</span><span class="p">])</span>
-                    <span class="o">.</span><span class="n">aggregate</span><span class="p">(</span><span class="n">table</span><span class="o">.</span><span class="n">arrdelay</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span><span class="o">.</span><span class="n">name</span><span class="p">(</span><span class="s">&#39;avg_delay&#39;</span><span class="p">)))</span>
+<span class="n">yearly_avg_delay</span> <span class="o">=</span> <span class="p">(</span><span class="n">table</span><span class="o">.</span><span class="n">group_by</span><span class="p">([</span><span class="s1">&#39;dest&#39;</span><span class="p">,</span> <span class="s1">&#39;year&#39;</span><span class="p">])</span>
+                    <span class="o">.</span><span class="n">aggregate</span><span class="p">(</span><span class="n">table</span><span class="o">.</span><span class="n">arrdelay</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span><span class="o">.</span><span class="n">name</span><span class="p">(</span><span class="s1">&#39;avg_delay&#39;</span><span class="p">)))</span>
 
 <span class="n">delay</span> <span class="o">=</span> <span class="n">yearly_avg_delay</span><span class="o">.</span><span class="n">avg_delay</span>
 <span class="n">yoy_chg</span> <span class="o">=</span> <span class="p">(</span><span class="n">delay</span> <span class="o">-</span> <span class="n">delay</span><span class="o">.</span><span class="n">lag</span><span class="p">()</span><span class="o">.</span><span class="n">over</span><span class="p">(</span><span class="n">w</span><span class="p">))</span>
 <span class="n">yearly_avg_delay</span> <span class="o">=</span> <span class="n">yearly_avg_delay</span><span class="o">.</span><span class="n">mutate</span><span class="p">(</span><span class="n">yoy_change</span><span class="o">=</span><span class="n">yoy_chg</span><span class="p">)</span>
 
-<span class="n">yearly_avg_delay</span><span class="p">[(</span><span class="n">yearly_avg_delay</span><span class="o">.</span><span class="n">dest</span> <span class="o">==</span> <span class="s">&#39;ORD&#39;</span><span class="p">)</span>
+<span class="n">yearly_avg_delay</span><span class="p">[(</span><span class="n">yearly_avg_delay</span><span class="o">.</span><span class="n">dest</span> <span class="o">==</span> <span class="s1">&#39;ORD&#39;</span><span class="p">)</span>
                  <span class="o">&amp;</span> <span class="p">(</span><span class="n">yearly_avg_delay</span><span class="o">.</span><span class="n">year</span> <span class="o">&gt;=</span> <span class="mi">2000</span><span class="p">)]</span>
 </pre></div>
 
@@ -2083,9 +2086,9 @@ In&nbsp;[5]:
 In&nbsp;[6]:
 </div>
 <div class="input_area box-flex1">
-<div class="highlight-ipynb"><pre class="ipynb"><span class="n">annual_delay</span> <span class="o">=</span> <span class="p">(</span><span class="n">table</span><span class="p">[</span><span class="n">table</span><span class="o">.</span><span class="n">dest</span><span class="o">.</span><span class="n">isin</span><span class="p">([</span><span class="s">&#39;JFK&#39;</span><span class="p">,</span> <span class="s">&#39;SFO&#39;</span><span class="p">])]</span>                
-                <span class="o">.</span><span class="n">group_by</span><span class="p">([</span><span class="s">&#39;dest&#39;</span><span class="p">,</span> <span class="s">&#39;year&#39;</span><span class="p">])</span>
-                <span class="o">.</span><span class="n">aggregate</span><span class="p">(</span><span class="n">table</span><span class="o">.</span><span class="n">arrdelay</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span><span class="o">.</span><span class="n">name</span><span class="p">(</span><span class="s">&#39;avg_delay&#39;</span><span class="p">)))</span>
+<div class="highlight-ipynb"><pre class="ipynb"><span></span><span class="n">annual_delay</span> <span class="o">=</span> <span class="p">(</span><span class="n">table</span><span class="p">[</span><span class="n">table</span><span class="o">.</span><span class="n">dest</span><span class="o">.</span><span class="n">isin</span><span class="p">([</span><span class="s1">&#39;JFK&#39;</span><span class="p">,</span> <span class="s1">&#39;SFO&#39;</span><span class="p">])]</span>                
+                <span class="o">.</span><span class="n">group_by</span><span class="p">([</span><span class="s1">&#39;dest&#39;</span><span class="p">,</span> <span class="s1">&#39;year&#39;</span><span class="p">])</span>
+                <span class="o">.</span><span class="n">aggregate</span><span class="p">(</span><span class="n">table</span><span class="o">.</span><span class="n">arrdelay</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span><span class="o">.</span><span class="n">name</span><span class="p">(</span><span class="s1">&#39;avg_delay&#39;</span><span class="p">)))</span>
 <span class="n">annual_delay</span><span class="o">.</span><span class="n">limit</span><span class="p">(</span><span class="mi">20</span><span class="p">)</span>
 </pre></div>
 
@@ -2141,8 +2144,8 @@ In&nbsp;[6]:
 In&nbsp;[7]:
 </div>
 <div class="input_area box-flex1">
-<div class="highlight-ipynb"><pre class="ipynb"><span class="n">enriched</span> <span class="o">=</span> <span class="p">(</span><span class="n">annual_delay</span>
-            <span class="o">.</span><span class="n">group_by</span><span class="p">(</span><span class="s">&#39;dest&#39;</span><span class="p">)</span>
+<div class="highlight-ipynb"><pre class="ipynb"><span></span><span class="n">enriched</span> <span class="o">=</span> <span class="p">(</span><span class="n">annual_delay</span>
+            <span class="o">.</span><span class="n">group_by</span><span class="p">(</span><span class="s1">&#39;dest&#39;</span><span class="p">)</span>
             <span class="o">.</span><span class="n">mutate</span><span class="p">(</span><span class="n">grand_avg</span><span class="o">=</span><span class="n">annual_delay</span><span class="o">.</span><span class="n">avg_delay</span><span class="o">.</span><span class="n">mean</span><span class="p">()))</span>
 <span class="n">enriched</span><span class="o">.</span><span class="n">limit</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span><span class="o">.</span><span class="n">execute</span><span class="p">()</span>
 </pre></div>
@@ -2262,7 +2265,7 @@ In&nbsp;[7]:
 In&nbsp;[8]:
 </div>
 <div class="input_area box-flex1">
-<div class="highlight-ipynb"><pre class="ipynb"><span class="c"># 9 + current period = 10</span>
+<div class="highlight-ipynb"><pre class="ipynb"><span></span><span class="c1"># 9 + current period = 10</span>
 <span class="n">w</span> <span class="o">=</span> <span class="n">ibis</span><span class="o">.</span><span class="n">window</span><span class="p">(</span><span class="n">group_by</span><span class="o">=</span><span class="n">annual_delay</span><span class="o">.</span><span class="n">dest</span><span class="p">,</span> 
                 <span class="n">order_by</span><span class="o">=</span><span class="n">annual_delay</span><span class="o">.</span><span class="n">year</span><span class="p">,</span>
                 <span class="n">preceding</span><span class="o">=</span><span class="mi">9</span><span class="p">,</span> <span class="n">following</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
@@ -2283,9 +2286,9 @@ In&nbsp;[8]:
 In&nbsp;[9]:
 </div>
 <div class="input_area box-flex1">
-<div class="highlight-ipynb"><pre class="ipynb"><span class="n">metric</span> <span class="o">=</span> <span class="n">annual_delay</span><span class="o">.</span><span class="n">avg_delay</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span><span class="o">.</span><span class="n">over</span><span class="p">(</span><span class="n">w2</span><span class="p">)</span>
+<div class="highlight-ipynb"><pre class="ipynb"><span></span><span class="n">metric</span> <span class="o">=</span> <span class="n">annual_delay</span><span class="o">.</span><span class="n">avg_delay</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span><span class="o">.</span><span class="n">over</span><span class="p">(</span><span class="n">w2</span><span class="p">)</span>
 <span class="n">enriched</span> <span class="o">=</span> <span class="n">annual_delay</span><span class="p">[</span><span class="n">annual_delay</span><span class="p">,</span> <span class="n">metric</span><span class="p">]</span>
-<span class="n">enriched</span><span class="o">.</span><span class="n">sort_by</span><span class="p">(</span><span class="n">ibis</span><span class="o">.</span><span class="n">desc</span><span class="p">(</span><span class="s">&#39;year&#39;</span><span class="p">))</span><span class="o">.</span><span class="n">limit</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span>
+<span class="n">enriched</span><span class="o">.</span><span class="n">sort_by</span><span class="p">(</span><span class="n">ibis</span><span class="o">.</span><span class="n">desc</span><span class="p">(</span><span class="s1">&#39;year&#39;</span><span class="p">))</span><span class="o">.</span><span class="n">limit</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span>
 </pre></div>
 
 </div>
@@ -2330,13 +2333,13 @@ In&nbsp;[9]:
 In&nbsp;[10]:
 </div>
 <div class="input_area box-flex1">
-<div class="highlight-ipynb"><pre class="ipynb"><span class="n">w3</span> <span class="o">=</span> <span class="n">ibis</span><span class="o">.</span><span class="n">trailing_window</span><span class="p">(</span><span class="mi">9</span><span class="p">)</span>
+<div class="highlight-ipynb"><pre class="ipynb"><span></span><span class="n">w3</span> <span class="o">=</span> <span class="n">ibis</span><span class="o">.</span><span class="n">trailing_window</span><span class="p">(</span><span class="mi">9</span><span class="p">)</span>
 
 <span class="n">expr</span> <span class="o">=</span> <span class="p">(</span><span class="n">annual_delay</span>
-        <span class="o">.</span><span class="n">group_by</span><span class="p">(</span><span class="s">&#39;dest&#39;</span><span class="p">)</span>
-        <span class="o">.</span><span class="n">order_by</span><span class="p">(</span><span class="s">&#39;year&#39;</span><span class="p">)</span>
+        <span class="o">.</span><span class="n">group_by</span><span class="p">(</span><span class="s1">&#39;dest&#39;</span><span class="p">)</span>
+        <span class="o">.</span><span class="n">order_by</span><span class="p">(</span><span class="s1">&#39;year&#39;</span><span class="p">)</span>
         <span class="o">.</span><span class="n">mutate</span><span class="p">(</span><span class="n">avg_10y</span><span class="o">=</span><span class="n">annual_delay</span><span class="o">.</span><span class="n">avg_delay</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span><span class="o">.</span><span class="n">over</span><span class="p">(</span><span class="n">w3</span><span class="p">))</span>
-        <span class="o">.</span><span class="n">sort_by</span><span class="p">(</span><span class="n">ibis</span><span class="o">.</span><span class="n">desc</span><span class="p">(</span><span class="s">&#39;year&#39;</span><span class="p">))</span>
+        <span class="o">.</span><span class="n">sort_by</span><span class="p">(</span><span class="n">ibis</span><span class="o">.</span><span class="n">desc</span><span class="p">(</span><span class="s1">&#39;year&#39;</span><span class="p">))</span>
         <span class="o">.</span><span class="n">limit</span><span class="p">(</span><span class="mi">10</span><span class="p">))</span>
 <span class="n">expr</span>
 </pre></div>
@@ -2394,7 +2397,7 @@ In&nbsp;[10]:
 In&nbsp;[12]:
 </div>
 <div class="input_area box-flex1">
-<div class="highlight-ipynb"><pre class="ipynb"><span class="n">w1</span> <span class="o">=</span> <span class="n">ibis</span><span class="o">.</span><span class="n">window</span><span class="p">(</span><span class="n">group_by</span><span class="o">=</span><span class="s">&#39;dest&#39;</span><span class="p">,</span> <span class="n">order_by</span><span class="o">=</span><span class="p">[</span><span class="s">&#39;year&#39;</span><span class="p">,</span> <span class="s">&#39;month&#39;</span><span class="p">])</span>
+<div class="highlight-ipynb"><pre class="ipynb"><span></span><span class="n">w1</span> <span class="o">=</span> <span class="n">ibis</span><span class="o">.</span><span class="n">window</span><span class="p">(</span><span class="n">group_by</span><span class="o">=</span><span class="s1">&#39;dest&#39;</span><span class="p">,</span> <span class="n">order_by</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;year&#39;</span><span class="p">,</span> <span class="s1">&#39;month&#39;</span><span class="p">])</span>
 <span class="n">w2</span> <span class="o">=</span> <span class="n">ibis</span><span class="o">.</span><span class="n">trailing_window</span><span class="p">(</span><span class="mi">12</span><span class="p">)</span>
 </pre></div>
 
@@ -2411,7 +2414,7 @@ In&nbsp;[12]:
 In&nbsp;[13]:
 </div>
 <div class="input_area box-flex1">
-<div class="highlight-ipynb"><pre class="ipynb"><span class="n">w</span> <span class="o">=</span> <span class="n">w1</span><span class="o">.</span><span class="n">combine</span><span class="p">(</span><span class="n">w2</span><span class="p">)</span>
+<div class="highlight-ipynb"><pre class="ipynb"><span></span><span class="n">w</span> <span class="o">=</span> <span class="n">w1</span><span class="o">.</span><span class="n">combine</span><span class="p">(</span><span class="n">w2</span><span class="p">)</span>
 </pre></div>
 
 </div>
@@ -2427,7 +2430,7 @@ In&nbsp;[13]:
 In&nbsp;[14]:
 </div>
 <div class="input_area box-flex1">
-<div class="highlight-ipynb"><pre class="ipynb"><span class="n">w3</span> <span class="o">=</span> <span class="n">ibis</span><span class="o">.</span><span class="n">window</span><span class="p">(</span><span class="n">group_by</span><span class="o">=</span><span class="s">&#39;dest&#39;</span><span class="p">,</span> <span class="n">order_by</span><span class="o">=</span><span class="p">[</span><span class="s">&#39;year&#39;</span><span class="p">,</span> <span class="s">&#39;month&#39;</span><span class="p">],</span>
+<div class="highlight-ipynb"><pre class="ipynb"><span></span><span class="n">w3</span> <span class="o">=</span> <span class="n">ibis</span><span class="o">.</span><span class="n">window</span><span class="p">(</span><span class="n">group_by</span><span class="o">=</span><span class="s1">&#39;dest&#39;</span><span class="p">,</span> <span class="n">order_by</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;year&#39;</span><span class="p">,</span> <span class="s1">&#39;month&#39;</span><span class="p">],</span>
                  <span class="n">preceding</span><span class="o">=</span><span class="mi">12</span><span class="p">,</span> <span class="n">following</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
 <span class="n">w</span><span class="o">.</span><span class="n">equals</span><span class="p">(</span><span class="n">w3</span><span class="p">)</span>
 </pre></div>
@@ -2478,6 +2481,9 @@ True
     <h1>Recent Posts</h1>
     <ul id="recent_posts">
       <li class="post">
+          <a href="http://blog.ibis-project.org/release-0.7/">Ibis 0.7: Kudu-Impala integration, SQL compiler improvements</a>
+      </li>
+      <li class="post">
           <a href="http://blog.ibis-project.org/kudu-impala-ibis/">Interactive Analytics on Dynamic Big Data in Python using Kudu, Impala, and Ibis</a>
       </li>
       <li class="post">
@@ -2488,9 +2494,6 @@ True
       </li>
       <li class="post">
           <a href="http://blog.ibis-project.org/design-types-operations/">Ibis Design: Expression types and operation mechanics</a>
-      </li>
-      <li class="post">
-          <a href="http://blog.ibis-project.org/sqlite-crunchbase-quickstart/">Quickstart on Crunchbase analysis using Ibis and SQLite</a>
       </li>
     </ul>
   </section>
@@ -2514,7 +2517,7 @@ True
 </aside>    </div>
   </div>
   <footer role="contentinfo"><p>
-    Copyright &copy;  2015  Cloudera, Inc. &mdash;
+    Copyright &copy;  2015&ndash;2016  Cloudera, Inc. &mdash;
   <span class="credit">Powered by <a href="http://getpelican.com">Pelican</a></span>
 </p></footer>
   <script src="http://blog.ibis-project.org/theme/js/modernizr-2.0.js"></script>

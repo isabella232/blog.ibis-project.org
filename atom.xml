@@ -1,5 +1,436 @@
 <?xml version="1.0" encoding="utf-8"?>
-<feed xmlns="http://www.w3.org/2005/Atom"><title>Ibis Project Blog</title><link href="http://blog.ibis-project.org/" rel="alternate"></link><link href="/atom.xml" rel="self"></link><id>http://blog.ibis-project.org/</id><updated>2016-03-16T05:00:00-07:00</updated><entry><title>Ibis 0.7: Kudu-Impala integration, SQL compiler improvements</title><link href="http://blog.ibis-project.org/release-0.7/" rel="alternate"></link><updated>2016-03-16T05:00:00-07:00</updated><author><name>Wes McKinney</name></author><id>tag:blog.ibis-project.org,2016-03-16:release-0.7/</id><summary type="html">
+<feed xmlns="http://www.w3.org/2005/Atom"><title>Ibis Project Blog</title><link href="http://www.ibis-project.org/" rel="alternate"></link><link href="/atom.xml" rel="self"></link><id>http://www.ibis-project.org/</id><updated>2016-06-14T10:00:00-07:00</updated><entry><title>Announcing hs2client, a fast new C++ / Python Thrift client for Impala and Hive</title><link href="http://www.ibis-project.org/new-native-impala-hive.client/" rel="alternate"></link><updated>2016-06-14T10:00:00-07:00</updated><author><name>Wes McKinney</name></author><id>tag:www.ibis-project.org,2016-06-14:new-native-impala-hive.client/</id><summary type="html">
+
+&lt;p&gt;This year, I collaborated with members of the &lt;a href="http://impala.io/"&gt;Apache Impala (incubating)&lt;/a&gt;
+team at Cloudera to create a new C++ library to eventually become a faster,
+more memory-efficient replacement for &lt;a href="https://github.com/cloudera/impyla"&gt;impyla&lt;/a&gt;, &lt;a href="https://github.com/dropbox/PyHive"&gt;PyHive&lt;/a&gt;, and other
+(largely pure Python) client libraries for talking to Apache Hive and Impala.&lt;/p&gt;
+&lt;p&gt;We are excited to release this effort, dubbed &lt;strong&gt;hs2client&lt;/strong&gt;, as a new
+Apache-licensed &lt;a href="https://github.com/cloudera/hs2client"&gt;open source project on GitHub&lt;/a&gt;. As you may guess from the
+name, this library implement the HiveServer2 Thrift API as a C++ library, with
+careful handling of result sets to allow languages like Python to access data
+at high performance.&lt;/p&gt;
+&lt;p&gt;The initial preview release contains:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;A C++ library, &lt;code&gt;libhs2client&lt;/code&gt;, which provides a clean C++ API for the
+  HiveServer2 Thrift API. This can be built and dynamically or statically
+  linked in C/C++ applications with no direct exposure to Apache Thrift.&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;Python bindings, with optimized reads to &lt;strong&gt;pandas.DataFrame&lt;/strong&gt;&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;To try out the library, you can install a dev build of the project right now
+with conda:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;conda install hs2client -c cloudera/channel/dev
+&lt;/pre&gt;&lt;/div&gt;
+
+
+
+
+&lt;p&gt;
+&lt;div class="text_cell_render border-box-sizing rendered_html"&gt;
+&lt;h2 id="optimizing-for-speed-and-memory-use"&gt;Optimizing for speed and memory use&lt;/h2&gt;
+&lt;/div&gt;
+&lt;div class="text_cell_render border-box-sizing rendered_html"&gt;
+&lt;p&gt;The Python bindings for &lt;code&gt;libhs2client&lt;/code&gt; are careful about performance and memory in a few key ways:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;Converting row batches directly into pandas-compatible NumPy arrays&lt;/li&gt;
+&lt;li&gt;Care with categorical data: string data is deduplicated while it's being converted for pandas. In the future, it would be straightforward to add an option to return all string data as &lt;code&gt;pandas.Categorical&lt;/code&gt; arrays&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/div&gt;
+&lt;div class="text_cell_render border-box-sizing rendered_html"&gt;
+&lt;h2 id="hs2client-demo-and-simple-benchmark"&gt;hs2client demo and simple benchmark&lt;/h2&gt;
+&lt;p&gt;The initial API is oriented at modeling the HiveServer2 protocol closely. Connecting to a cluster yields a &lt;code&gt;Service&lt;/code&gt; instance:&lt;/p&gt;
+&lt;/div&gt;
+&lt;div class="cell border-box-sizing code_cell vbox"&gt;
+&lt;div class="input hbox"&gt;
+&lt;div class="prompt input_prompt"&gt;
+In&amp;nbsp;[1]:
+&lt;/div&gt;
+&lt;div class="input_area box-flex1"&gt;
+&lt;div class="highlight-ipynb"&gt;&lt;pre class="ipynb"&gt;&lt;span&gt;&lt;/span&gt;&lt;span class="kn"&gt;import&lt;/span&gt; &lt;span class="nn"&gt;hs2client&lt;/span&gt;
+
+&lt;span class="n"&gt;service&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;hs2client&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;connect&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s1"&gt;&amp;#39;localhost&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="mi"&gt;21050&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s1"&gt;&amp;#39;wesm&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;div class="text_cell_render border-box-sizing rendered_html"&gt;
+&lt;p&gt;To execute queries, you open a session then use its &lt;code&gt;execute&lt;/code&gt; method.&lt;/p&gt;
+&lt;/div&gt;
+&lt;div class="cell border-box-sizing code_cell vbox"&gt;
+&lt;div class="input hbox"&gt;
+&lt;div class="prompt input_prompt"&gt;
+In&amp;nbsp;[2]:
+&lt;/div&gt;
+&lt;div class="input_area box-flex1"&gt;
+&lt;div class="highlight-ipynb"&gt;&lt;pre class="ipynb"&gt;&lt;span&gt;&lt;/span&gt;&lt;span class="n"&gt;session&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;service&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;open_session&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;
+
+&lt;span class="n"&gt;op&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;session&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;execute&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s2"&gt;&amp;quot;select 1&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;div class="text_cell_render border-box-sizing rendered_html"&gt;
+&lt;p&gt;Queries are asynchronous by default.&lt;/p&gt;
+&lt;/div&gt;
+&lt;div class="cell border-box-sizing code_cell vbox"&gt;
+&lt;div class="input hbox"&gt;
+&lt;div class="prompt input_prompt"&gt;
+In&amp;nbsp;[3]:
+&lt;/div&gt;
+&lt;div class="input_area box-flex1"&gt;
+&lt;div class="highlight-ipynb"&gt;&lt;pre class="ipynb"&gt;&lt;span&gt;&lt;/span&gt;&lt;span class="n"&gt;op&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;is_finished&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;div class="vbox output_wrapper"&gt;
+&lt;div class="output vbox"&gt;
+
+
+&lt;div class="hbox output_area"&gt;&lt;div class="prompt output_prompt"&gt;
+    Out[3]:&lt;/div&gt;
+&lt;div class="box-flex1 output_subarea output_pyout"&gt;
+
+
+&lt;pre&gt;
+True
+&lt;/pre&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;div class="cell border-box-sizing code_cell vbox"&gt;
+&lt;div class="input hbox"&gt;
+&lt;div class="prompt input_prompt"&gt;
+In&amp;nbsp;[4]:
+&lt;/div&gt;
+&lt;div class="input_area box-flex1"&gt;
+&lt;div class="highlight-ipynb"&gt;&lt;pre class="ipynb"&gt;&lt;span&gt;&lt;/span&gt;&lt;span class="n"&gt;op&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;get_state&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;div class="vbox output_wrapper"&gt;
+&lt;div class="output vbox"&gt;
+
+
+&lt;div class="hbox output_area"&gt;&lt;div class="prompt output_prompt"&gt;
+    Out[4]:&lt;/div&gt;
+&lt;div class="box-flex1 output_subarea output_pyout"&gt;
+
+
+&lt;pre&gt;
+&amp;apos;finished&amp;apos;
+&lt;/pre&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;div class="text_cell_render border-box-sizing rendered_html"&gt;
+&lt;p&gt;Result sets can be fetch currently to &lt;code&gt;pandas.DataFrame&lt;/code&gt; objects:&lt;/p&gt;
+&lt;/div&gt;
+&lt;div class="cell border-box-sizing code_cell vbox"&gt;
+&lt;div class="input hbox"&gt;
+&lt;div class="prompt input_prompt"&gt;
+In&amp;nbsp;[5]:
+&lt;/div&gt;
+&lt;div class="input_area box-flex1"&gt;
+&lt;div class="highlight-ipynb"&gt;&lt;pre class="ipynb"&gt;&lt;span&gt;&lt;/span&gt;&lt;span class="n"&gt;df&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;op&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;fetchall_pandas&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;div class="cell border-box-sizing code_cell vbox"&gt;
+&lt;div class="input hbox"&gt;
+&lt;div class="prompt input_prompt"&gt;
+In&amp;nbsp;[6]:
+&lt;/div&gt;
+&lt;div class="input_area box-flex1"&gt;
+&lt;div class="highlight-ipynb"&gt;&lt;pre class="ipynb"&gt;&lt;span&gt;&lt;/span&gt;&lt;span class="n"&gt;df&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;div class="vbox output_wrapper"&gt;
+&lt;div class="output vbox"&gt;
+
+
+&lt;div class="hbox output_area"&gt;&lt;div class="prompt output_prompt"&gt;
+    Out[6]:&lt;/div&gt;
+&lt;div class="box-flex1 output_subarea output_pyout"&gt;
+
+&lt;div class="output_html rendered_html"&gt;
+&lt;div style="max-width:1500px;overflow:auto;"&gt;
+&lt;table border="1" class="dataframe"&gt;
+  &lt;thead&gt;
+    &lt;tr style="text-align: right;"&gt;
+      &lt;th&gt;&lt;/th&gt;
+      &lt;th&gt;1&lt;/th&gt;
+    &lt;/tr&gt;
+  &lt;/thead&gt;
+  &lt;tbody&gt;
+    &lt;tr&gt;
+      &lt;th&gt;0&lt;/th&gt;
+      &lt;td&gt;1&lt;/td&gt;
+    &lt;/tr&gt;
+  &lt;/tbody&gt;
+&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;div class="text_cell_render border-box-sizing rendered_html"&gt;
+&lt;p&gt;Compared with comparable database clients, we've optimized the fetch path to have excellent performance (IO speeds) and memory use.&lt;/p&gt;
+&lt;/div&gt;
+&lt;div class="cell border-box-sizing code_cell vbox"&gt;
+&lt;div class="input hbox"&gt;
+&lt;div class="prompt input_prompt"&gt;
+In&amp;nbsp;[10]:
+&lt;/div&gt;
+&lt;div class="input_area box-flex1"&gt;
+&lt;div class="highlight-ipynb"&gt;&lt;pre class="ipynb"&gt;&lt;span&gt;&lt;/span&gt;&lt;span class="kn"&gt;import&lt;/span&gt; &lt;span class="nn"&gt;numpy&lt;/span&gt; &lt;span class="kn"&gt;as&lt;/span&gt; &lt;span class="nn"&gt;np&lt;/span&gt;
+&lt;span class="kn"&gt;import&lt;/span&gt; &lt;span class="nn"&gt;pandas&lt;/span&gt; &lt;span class="kn"&gt;as&lt;/span&gt; &lt;span class="nn"&gt;pd&lt;/span&gt;
+
+&lt;span class="n"&gt;N&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;K&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="mi"&gt;1000000&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="mi"&gt;10&lt;/span&gt;
+
+&lt;span class="n"&gt;df&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;pd&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;DataFrame&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;np&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;random&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;randn&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;N&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;K&lt;/span&gt;&lt;span class="p"&gt;),&lt;/span&gt;
+                  &lt;span class="n"&gt;columns&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="s1"&gt;&amp;#39;data{0}&amp;#39;&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;format&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;i&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="k"&gt;for&lt;/span&gt; &lt;span class="n"&gt;i&lt;/span&gt; &lt;span class="ow"&gt;in&lt;/span&gt; &lt;span class="nb"&gt;range&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;K&lt;/span&gt;&lt;span class="p"&gt;)])&lt;/span&gt;
+
+&lt;span class="kn"&gt;import&lt;/span&gt; &lt;span class="nn"&gt;ibis&lt;/span&gt;
+&lt;span class="n"&gt;con&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;ibis&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;impala&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;connect&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s1"&gt;&amp;#39;localhost&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; 
+                          &lt;span class="n"&gt;hdfs_client&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="n"&gt;ibis&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;hdfs_connect&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;port&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="mi"&gt;5070&lt;/span&gt;&lt;span class="p"&gt;))&lt;/span&gt;
+&lt;span class="n"&gt;con&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;drop_database&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s1"&gt;&amp;#39;hs2_test&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;force&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="bp"&gt;True&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;span class="n"&gt;con&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;create_database&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s1"&gt;&amp;#39;hs2_test&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;span class="n"&gt;con&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;create_table&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s1"&gt;&amp;#39;test_data&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;df&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;database&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="s1"&gt;&amp;#39;hs2_test&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;div class="cell border-box-sizing code_cell vbox"&gt;
+&lt;div class="input hbox"&gt;
+&lt;div class="prompt input_prompt"&gt;
+In&amp;nbsp;[16]:
+&lt;/div&gt;
+&lt;div class="input_area box-flex1"&gt;
+&lt;div class="highlight-ipynb"&gt;&lt;pre class="ipynb"&gt;&lt;span&gt;&lt;/span&gt;&lt;span class="n"&gt;op&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;session&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;execute_sync&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s1"&gt;&amp;#39;select * from hs2_test.test_data&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;span class="o"&gt;%&lt;/span&gt;&lt;span class="k"&gt;time&lt;/span&gt; &lt;span class="n"&gt;df&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;op&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;fetchall_pandas&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;div class="vbox output_wrapper"&gt;
+&lt;div class="output vbox"&gt;
+
+
+&lt;div class="hbox output_area"&gt;&lt;div class="prompt"&gt;&lt;/div&gt;
+&lt;div class="box-flex1 output_subarea output_stream output_stdout"&gt;
+&lt;pre&gt;
+CPU times: user 200 ms, sys: 64 ms, total: 264 ms
+Wall time: 682 ms
+
+&lt;/pre&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;div class="cell border-box-sizing code_cell vbox"&gt;
+&lt;div class="input hbox"&gt;
+&lt;div class="prompt input_prompt"&gt;
+In&amp;nbsp;[21]:
+&lt;/div&gt;
+&lt;div class="input_area box-flex1"&gt;
+&lt;div class="highlight-ipynb"&gt;&lt;pre class="ipynb"&gt;&lt;span&gt;&lt;/span&gt;&lt;span class="n"&gt;speed&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;df&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;memory_usage&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;sum&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt; &lt;span class="o"&gt;/&lt;/span&gt; &lt;span class="mf"&gt;0.682&lt;/span&gt; &lt;span class="o"&gt;/&lt;/span&gt; &lt;span class="mi"&gt;2&lt;/span&gt;&lt;span class="o"&gt;**&lt;/span&gt;&lt;span class="mi"&gt;20&lt;/span&gt;
+&lt;span class="k"&gt;print&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s1"&gt;&amp;#39;Speed: {0:.2f} MB/s&amp;#39;&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;format&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;speed&lt;/span&gt;&lt;span class="p"&gt;))&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;div class="vbox output_wrapper"&gt;
+&lt;div class="output vbox"&gt;
+
+
+&lt;div class="hbox output_area"&gt;&lt;div class="prompt"&gt;&lt;/div&gt;
+&lt;div class="box-flex1 output_subarea output_stream output_stdout"&gt;
+&lt;pre&gt;
+Speed: 111.87 MB/s
+
+&lt;/pre&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;div class="text_cell_render border-box-sizing rendered_html"&gt;
+&lt;p&gt;This benchmark is being run on &lt;code&gt;localhost&lt;/code&gt;, but it shows we can move over 110 MB/s through the Thrift protocol &lt;strong&gt;and&lt;/strong&gt; convert to a fully-formed pandas DataFrame.&lt;/p&gt;
+&lt;/div&gt;
+&lt;div class="text_cell_render border-box-sizing rendered_html"&gt;
+&lt;h2 id="hs2client-compared-with-impyla"&gt;hs2client compared with impyla&lt;/h2&gt;
+&lt;p&gt;In Ibis and other Python projects, we have been using &lt;a href="http://github.com/cloudera/impyla"&gt;impyla&lt;/a&gt; to execute queries and access result sets. impyla either uses Apache Thrift's official Python implementation (on Python 2) or &lt;a href="https://github.com/eleme/thriftpy"&gt;thriftpy&lt;/a&gt; (on Python 3) for interacting with the Impala or Hive Thrift service. Because of this, the main difference is the performance in fetching large result sets.&lt;/p&gt;
+&lt;p&gt;Here, I will perform an equivalent fetch using impyla via ibis:&lt;/p&gt;
+&lt;/div&gt;
+&lt;div class="cell border-box-sizing code_cell vbox"&gt;
+&lt;div class="input hbox"&gt;
+&lt;div class="prompt input_prompt"&gt;
+In&amp;nbsp;[29]:
+&lt;/div&gt;
+&lt;div class="input_area box-flex1"&gt;
+&lt;div class="highlight-ipynb"&gt;&lt;pre class="ipynb"&gt;&lt;span&gt;&lt;/span&gt;&lt;span class="c1"&gt;# Connect to Impala via impyla (on Python 2)&lt;/span&gt;
+&lt;span class="n"&gt;con&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;ibis&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;impala&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;connect&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s1"&gt;&amp;#39;localhost&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;port&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="mi"&gt;21050&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+
+&lt;span class="n"&gt;expr&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;con&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;sql&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s1"&gt;&amp;#39;select * from hs2_test.test_data&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+
+&lt;span class="o"&gt;%&lt;/span&gt;&lt;span class="k"&gt;time&lt;/span&gt; &lt;span class="n"&gt;df&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;expr&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;execute&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;limit&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="bp"&gt;None&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;div class="vbox output_wrapper"&gt;
+&lt;div class="output vbox"&gt;
+
+
+&lt;div class="hbox output_area"&gt;&lt;div class="prompt"&gt;&lt;/div&gt;
+&lt;div class="box-flex1 output_subarea output_stream output_stdout"&gt;
+&lt;pre&gt;
+CPU times: user 1.15 s, sys: 52 ms, total: 1.2 s
+Wall time: 1.66 s
+
+&lt;/pre&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;div class="cell border-box-sizing code_cell vbox"&gt;
+&lt;div class="input hbox"&gt;
+&lt;div class="prompt input_prompt"&gt;
+In&amp;nbsp;[30]:
+&lt;/div&gt;
+&lt;div class="input_area box-flex1"&gt;
+&lt;div class="highlight-ipynb"&gt;&lt;pre class="ipynb"&gt;&lt;span&gt;&lt;/span&gt;&lt;span class="n"&gt;speed&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;df&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;memory_usage&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;sum&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt; &lt;span class="o"&gt;/&lt;/span&gt; &lt;span class="mf"&gt;1.66&lt;/span&gt; &lt;span class="o"&gt;/&lt;/span&gt; &lt;span class="mi"&gt;2&lt;/span&gt;&lt;span class="o"&gt;**&lt;/span&gt;&lt;span class="mi"&gt;20&lt;/span&gt;
+&lt;span class="k"&gt;print&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s1"&gt;&amp;#39;Speed: {0:.2f} MB/s&amp;#39;&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;format&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;speed&lt;/span&gt;&lt;span class="p"&gt;))&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;div class="vbox output_wrapper"&gt;
+&lt;div class="output vbox"&gt;
+
+
+&lt;div class="hbox output_area"&gt;&lt;div class="prompt"&gt;&lt;/div&gt;
+&lt;div class="box-flex1 output_subarea output_stream output_stdout"&gt;
+&lt;pre&gt;
+Speed: 45.96 MB/s
+
+&lt;/pre&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;div class="text_cell_render border-box-sizing rendered_html"&gt;
+&lt;p&gt;In this particular use case with an all-numeric table (which is ideal for deserialization performance), the speed difference is only 2x or a bit more.&lt;/p&gt;
+&lt;/div&gt;
+&lt;div class="text_cell_render border-box-sizing rendered_html"&gt;
+&lt;h2 id="hs2client-roadmap"&gt;hs2client roadmap&lt;/h2&gt;
+&lt;p&gt;The &lt;a href="http://github.com/cloudera/hs2client"&gt;code is hosted on GitHub&lt;/a&gt;.&lt;/p&gt;
+&lt;p&gt;The C++ library does not yet implement some important features that are needed to be a drop-in replacement for impyla or other Hive or Impala drivers:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;SSL transport (with certificate verification)&lt;/li&gt;
+&lt;li&gt;SASL Thrift transport for secure (i.e. Kerberos) clusters, or insecure clusters using SASL&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;On the Python side, we must implement a DB API 2.0 compatibility layer, since currently data can only be fetched to pandas, not Python tuples as with most Python database drivers.&lt;/p&gt;
+&lt;p&gt;We of course welcome contributions from the community to build out some of these features.&lt;/p&gt;
+&lt;/div&gt;&lt;/p&gt;</summary></entry><entry><title>Ibis 0.8: Initial PostgreSQL support, bug fixes</title><link href="http://www.ibis-project.org/release-0.8/" rel="alternate"></link><updated>2016-05-19T08:00:00-07:00</updated><author><name>Wes McKinney</name></author><id>tag:www.ibis-project.org,2016-05-19:release-0.8/</id><summary type="html">
+
+&lt;p&gt;Thanks to contributions from pandas core team member &lt;a href="http://github.com/cpcloud"&gt;Philip Cloud&lt;/a&gt;, Ibis
+now has initial support for PostgreSQL. The 0.8 release also includes many bug
+fixes from 0.7, and all Ibis users are recommended to upgrade.&lt;/p&gt;
+&lt;p&gt;Read more in the &lt;a href="http://docs.ibis-project.org/release.html"&gt;release notes&lt;/a&gt;.&lt;/p&gt;
+
+
+&lt;h2&gt;What is new with Ibis&lt;/h2&gt;
+&lt;p&gt;Ibis development has been slower in 2016 as I've been investing energies in
+&lt;a href="http://arrow.apache.org"&gt;Apache Arrow&lt;/a&gt;, &lt;a href="http://parquet.apache.org"&gt;Apache Parquet&lt;/a&gt;, and other projects that are all part of
+the broader goal of making Python work better with Hadoop and other distributed
+data systems. Some of the this functionality, like the ability to read Parquet
+files natively in Python, will start showing up in Ibis in the relatively near
+future.&lt;/p&gt;
+&lt;p&gt;In the meantime, we've been stabilizing and improving the existing Ibis
+functionality while working with the community to bring about new features.&lt;/p&gt;
+&lt;h2&gt;PostgreSQL support in Ibis&lt;/h2&gt;
+&lt;p&gt;The PostgreSQL database contains vast analytical functionality, far too much to
+cover completely right away, but Ibis now has support for a meaningful and
+useful subset of Postgres's built-in functions. It is also capable of
+performing window functions as well as a many date, string, and mathematical
+operations. If you find a Postgres function you'd like to see made available in
+Ibis, please let us know on the GitHub issue tracker.&lt;/p&gt;
+&lt;p&gt;Here's an example of what connecting to a PostgreSQL database and executing an
+expression looks like:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;span class="n"&gt;In&lt;/span&gt; &lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="mi"&gt;7&lt;/span&gt;&lt;span class="p"&gt;]:&lt;/span&gt; &lt;span class="n"&gt;client&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;ibis&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;postgres&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;connect&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;host&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="s1"&gt;&amp;#39;localhost&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;user&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="s1"&gt;&amp;#39;ibis_test&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
+                                       &lt;span class="n"&gt;password&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="s1"&gt;&amp;#39;ibis_test&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
+                                       &lt;span class="n"&gt;database&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="s1"&gt;&amp;#39;ibis_testing&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+
+&lt;span class="n"&gt;In&lt;/span&gt; &lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="mi"&gt;8&lt;/span&gt;&lt;span class="p"&gt;]:&lt;/span&gt; &lt;span class="n"&gt;client&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;list_tables&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;
+&lt;span class="n"&gt;Out&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="mi"&gt;8&lt;/span&gt;&lt;span class="p"&gt;]:&lt;/span&gt; &lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="s1"&gt;u&amp;#39;functional_alltypes&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;]&lt;/span&gt;
+
+&lt;span class="n"&gt;In&lt;/span&gt; &lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="mi"&gt;9&lt;/span&gt;&lt;span class="p"&gt;]:&lt;/span&gt; &lt;span class="n"&gt;t&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;client&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;table&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s1"&gt;&amp;#39;functional_alltypes&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+
+&lt;span class="n"&gt;In&lt;/span&gt; &lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="mi"&gt;10&lt;/span&gt;&lt;span class="p"&gt;]:&lt;/span&gt; &lt;span class="n"&gt;t&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;groupby&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s1"&gt;&amp;#39;string_col&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;size&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;execute&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;
+&lt;span class="n"&gt;Out&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="mi"&gt;10&lt;/span&gt;&lt;span class="p"&gt;]:&lt;/span&gt;
+  &lt;span class="n"&gt;string_col&lt;/span&gt;  &lt;span class="n"&gt;count&lt;/span&gt;
+&lt;span class="mi"&gt;0&lt;/span&gt;          &lt;span class="mi"&gt;8&lt;/span&gt;    &lt;span class="mi"&gt;730&lt;/span&gt;
+&lt;span class="mi"&gt;1&lt;/span&gt;          &lt;span class="mi"&gt;9&lt;/span&gt;    &lt;span class="mi"&gt;730&lt;/span&gt;
+&lt;span class="mi"&gt;2&lt;/span&gt;          &lt;span class="mi"&gt;2&lt;/span&gt;    &lt;span class="mi"&gt;730&lt;/span&gt;
+&lt;span class="mi"&gt;3&lt;/span&gt;          &lt;span class="mi"&gt;5&lt;/span&gt;    &lt;span class="mi"&gt;730&lt;/span&gt;
+&lt;span class="mi"&gt;4&lt;/span&gt;          &lt;span class="mi"&gt;3&lt;/span&gt;    &lt;span class="mi"&gt;730&lt;/span&gt;
+&lt;span class="mi"&gt;5&lt;/span&gt;          &lt;span class="mi"&gt;1&lt;/span&gt;    &lt;span class="mi"&gt;730&lt;/span&gt;
+&lt;span class="mi"&gt;6&lt;/span&gt;          &lt;span class="mi"&gt;7&lt;/span&gt;    &lt;span class="mi"&gt;730&lt;/span&gt;
+&lt;span class="mi"&gt;7&lt;/span&gt;          &lt;span class="mi"&gt;0&lt;/span&gt;    &lt;span class="mi"&gt;730&lt;/span&gt;
+&lt;span class="mi"&gt;8&lt;/span&gt;          &lt;span class="mi"&gt;4&lt;/span&gt;    &lt;span class="mi"&gt;730&lt;/span&gt;
+&lt;span class="mi"&gt;9&lt;/span&gt;          &lt;span class="mi"&gt;6&lt;/span&gt;    &lt;span class="mi"&gt;730&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;</summary></entry><entry><title>Ibis 0.7: Kudu-Impala integration, SQL compiler improvements</title><link href="http://www.ibis-project.org/release-0.7/" rel="alternate"></link><updated>2016-03-16T05:00:00-07:00</updated><author><name>Wes McKinney</name></author><id>tag:www.ibis-project.org,2016-03-16:release-0.7/</id><summary type="html">
 
 &lt;p&gt;Ibis 0.7.0 has been released! The biggest new feature in the release is
 &lt;a href="http://blog.ibis-project.org/kudu-impala-ibis/"&gt;Impala-Kudu integration&lt;/a&gt;. This is great timing, because &lt;a href="https://github.com/apache/incubator-kudu/tree/master/python"&gt;Kudu's Python client&lt;/a&gt; went beta officially in its recent 0.7.0 release.&lt;/p&gt;
@@ -43,7 +474,7 @@ SQL:&lt;/p&gt;
     &lt;span class="m"&gt;21&lt;/span&gt; Wes McKinney
      &lt;span class="m"&gt;1&lt;/span&gt; Uri Laserson
      &lt;span class="m"&gt;1&lt;/span&gt; Kristopher Overholt
-&lt;/pre&gt;&lt;/div&gt;</summary></entry><entry><title>Interactive Analytics on Dynamic Big Data in Python using Kudu, Impala, and Ibis</title><link href="http://blog.ibis-project.org/kudu-impala-ibis/" rel="alternate"></link><updated>2015-12-15T08:00:00-08:00</updated><author><name>Wes McKinney</name></author><id>tag:blog.ibis-project.org,2015-12-15:kudu-impala-ibis/</id><summary type="html">
+&lt;/pre&gt;&lt;/div&gt;</summary></entry><entry><title>Interactive Analytics on Dynamic Big Data in Python using Kudu, Impala, and Ibis</title><link href="http://www.ibis-project.org/kudu-impala-ibis/" rel="alternate"></link><updated>2015-12-15T08:00:00-08:00</updated><author><name>Wes McKinney</name></author><id>tag:www.ibis-project.org,2015-12-15:kudu-impala-ibis/</id><summary type="html">
 
 &lt;p&gt;The new &lt;a href="http://getkudu.io"&gt;Apache Kudu (incubating)&lt;/a&gt; columnar storage engine together with
 &lt;a href="http://impala.io"&gt;Apache Impala (incubating)&lt;/a&gt; interactive SQL engine enable a new fully open
@@ -990,7 +1421,7 @@ In&amp;nbsp;[28]:
 &lt;h2 id="conclusions"&gt;Conclusions&lt;/h2&gt;
 &lt;p&gt;Kudu is an exciting new open source storage technology which, when combined with a high performance compute engine like Impala, enables scalable high performance analytics on fast-changing data sets. Having this functionality seamlessly available to Python programmers using Ibis will make it much easier to develop end-to-end applications involving big data analytics. Most importantly, the code that you write will be largely the same whether you have 1000 or 100 billion rows of data.&lt;/p&gt;
 &lt;p&gt;I've been working to build out the Kudu Python interface so that it's easier for Python users to use the project and participate in the development community. If you see something here that interests you, we'd love to have you involved.&lt;/p&gt;
-&lt;/div&gt;&lt;/p&gt;</summary></entry><entry><title>Ibis 0.6: Expanded Impala support, better pandas integration</title><link href="http://blog.ibis-project.org/release-0.6/" rel="alternate"></link><updated>2015-12-01T05:00:00-08:00</updated><author><name>Wes McKinney</name></author><id>tag:blog.ibis-project.org,2015-12-01:release-0.6/</id><summary type="html">
+&lt;/div&gt;&lt;/p&gt;</summary></entry><entry><title>Ibis 0.6: Expanded Impala support, better pandas integration</title><link href="http://www.ibis-project.org/release-0.6/" rel="alternate"></link><updated>2015-12-01T05:00:00-08:00</updated><author><name>Wes McKinney</name></author><id>tag:www.ibis-project.org,2015-12-01:release-0.6/</id><summary type="html">
 
 &lt;p&gt;Ibis 0.6.0 has been released! This release brings substantial new functionality
 for Impala users; see the &lt;a href="http://docs.ibis-project.org/impala.html" target="_blank"&gt;Using Ibis with Impala guide&lt;/a&gt;
@@ -1018,7 +1449,7 @@ SQL system coverage.&lt;/p&gt;
    &lt;span class="m"&gt;1&lt;/span&gt; Phillip Cloud
    &lt;span class="m"&gt;1&lt;/span&gt; mariusvniekerk
    &lt;span class="m"&gt;1&lt;/span&gt; Kristopher Overholt
-&lt;/pre&gt;&lt;/div&gt;</summary></entry><entry><title>Ibis for SQL Programmers Guide</title><link href="http://blog.ibis-project.org/ibis-for-sql-programmers/" rel="alternate"></link><updated>2015-09-17T10:00:00-07:00</updated><author><name>Wes McKinney</name></author><id>tag:blog.ibis-project.org,2015-09-17:ibis-for-sql-programmers/</id><summary type="html">
+&lt;/pre&gt;&lt;/div&gt;</summary></entry><entry><title>Ibis for SQL Programmers Guide</title><link href="http://www.ibis-project.org/ibis-for-sql-programmers/" rel="alternate"></link><updated>2015-09-17T10:00:00-07:00</updated><author><name>Wes McKinney</name></author><id>tag:www.ibis-project.org,2015-09-17:ibis-for-sql-programmers/</id><summary type="html">
 
 &lt;p&gt;Yesterday, on the Ibis documentation I published the first version of &lt;a href="http://docs.ibis-project.org/sql.html" target="_blank"&gt;Ibis for SQL Programmers&lt;/a&gt;, a practical guide to how SQL concepts
 map onto the Ibis DSL. To be clear, all of your data will stay in a SQL engine,
@@ -1028,7 +1459,7 @@ types and expressions as you go, catching a large class of common mistakes made
 during SQL programming.&lt;/p&gt;
 &lt;p&gt;This will be an evolving document, so if you find something that you use
 commonly in SQL and would like to see it added, please &lt;a href="https://github.com/cloudera/ibis/issues" target="_blank"&gt;reach out to us&lt;/a&gt; on the project issue tracker.&lt;/p&gt;
-</summary></entry><entry><title>Ibis Design: Expression types and operation mechanics</title><link href="http://blog.ibis-project.org/design-types-operations/" rel="alternate"></link><updated>2015-09-13T10:00:00-07:00</updated><author><name>Wes McKinney</name></author><id>tag:blog.ibis-project.org,2015-09-13:design-types-operations/</id><summary type="html">&lt;p&gt;
+</summary></entry><entry><title>Ibis Design: Expression types and operation mechanics</title><link href="http://www.ibis-project.org/design-types-operations/" rel="alternate"></link><updated>2015-09-13T10:00:00-07:00</updated><author><name>Wes McKinney</name></author><id>tag:www.ibis-project.org,2015-09-13:design-types-operations/</id><summary type="html">&lt;p&gt;
 &lt;div class="text_cell_render border-box-sizing rendered_html"&gt;
 
 
@@ -2869,7 +3300,7 @@ float64
 &lt;li&gt;&lt;code&gt;fillna&lt;/code&gt; function&lt;/li&gt;
 &lt;/ul&gt;
 &lt;p&gt;Also, the way that joins work in Blaze is very un-SQL like (replicates pandas, in essence). This makes many SQL queries with joins hard to port. Check out the &lt;a href="http://docs.ibis-project.org/tutorial.html"&gt;Ibis tutorial&lt;/a&gt; for more on that.&lt;/p&gt;
-&lt;/div&gt;&lt;/p&gt;</summary></entry><entry><title>Quickstart on Crunchbase analysis using Ibis and SQLite</title><link href="http://blog.ibis-project.org/sqlite-crunchbase-quickstart/" rel="alternate"></link><updated>2015-09-09T08:01:00-07:00</updated><author><name>Wes McKinney</name></author><id>tag:blog.ibis-project.org,2015-09-09:sqlite-crunchbase-quickstart/</id><summary type="html">
+&lt;/div&gt;&lt;/p&gt;</summary></entry><entry><title>Quickstart on Crunchbase analysis using Ibis and SQLite</title><link href="http://www.ibis-project.org/sqlite-crunchbase-quickstart/" rel="alternate"></link><updated>2015-09-09T08:01:00-07:00</updated><author><name>Wes McKinney</name></author><id>tag:www.ibis-project.org,2015-09-09:sqlite-crunchbase-quickstart/</id><summary type="html">
 
 &lt;p&gt;The latest &lt;a href="http://blog.ibis-project.org/release-0.5/" target="_blank"&gt;0.5 version&lt;/a&gt; of Ibis supports executing
 expressions on data in SQLite database files. Since SQLite ships with Python,
@@ -4249,7 +4680,7 @@ In&amp;nbsp;[23]:
 &lt;/div&gt;
 &lt;div class="text_cell_render border-box-sizing rendered_html"&gt;
 &lt;p&gt;Have fun with this data and look out for more blog posts on it to illustrate Ibis features.&lt;/p&gt;
-&lt;/div&gt;&lt;/p&gt;</summary></entry><entry><title>Ibis 0.5: SQLite, Python 3, and more</title><link href="http://blog.ibis-project.org/release-0.5/" rel="alternate"></link><updated>2015-09-09T08:00:00-07:00</updated><author><name>Wes McKinney</name></author><id>tag:blog.ibis-project.org,2015-09-09:release-0.5/</id><summary type="html">
+&lt;/div&gt;&lt;/p&gt;</summary></entry><entry><title>Ibis 0.5: SQLite, Python 3, and more</title><link href="http://www.ibis-project.org/release-0.5/" rel="alternate"></link><updated>2015-09-09T08:00:00-07:00</updated><author><name>Wes McKinney</name></author><id>tag:www.ibis-project.org,2015-09-09:release-0.5/</id><summary type="html">
 
 &lt;p&gt;The next Ibis release is out, with some major new functionality:&lt;/p&gt;
 &lt;ul&gt;
@@ -4315,7 +4746,7 @@ short term. If you would like to get involved please get in touch.&lt;/p&gt;
 &lt;li&gt;Tools for more complex ETL workflows on Impala&lt;/li&gt;
 &lt;/ul&gt;
 &lt;p&gt;See the &lt;a href="https://github.com/cloudera/ibis/issues" target="_blank"&gt;GitHub issue tracker&lt;/a&gt; for the granular feature
-roadmap.&lt;/p&gt;</summary></entry><entry><title>Ibis expressions: Pythonic composability and evaluation</title><link href="http://blog.ibis-project.org/design-composability/" rel="alternate"></link><updated>2015-08-18T08:00:00-07:00</updated><author><name>Wes McKinney</name></author><id>tag:blog.ibis-project.org,2015-08-18:design-composability/</id><summary type="html">&lt;p&gt;
+roadmap.&lt;/p&gt;</summary></entry><entry><title>Ibis expressions: Pythonic composability and evaluation</title><link href="http://www.ibis-project.org/design-composability/" rel="alternate"></link><updated>2015-08-18T08:00:00-07:00</updated><author><name>Wes McKinney</name></author><id>tag:www.ibis-project.org,2015-08-18:design-composability/</id><summary type="html">&lt;p&gt;
 &lt;div class="text_cell_render border-box-sizing rendered_html"&gt;
 
 &lt;p&gt;The R community, especially my friend &lt;a href="http://twitter.com/hadleywickham"&gt;Hadley Wickham&lt;/a&gt;, has done pioneering work in creating expressive and useful domain-specific languages (DSLs) embedded in the R programming language. This articles gives some technical detail on composability and evaluation semantics in R and related work in Ibis to solve the same kinds of problems in a Pythonic way.&lt;/p&gt;
@@ -4594,7 +5025,7 @@ In&amp;nbsp;[5]:
 &lt;/div&gt;
 &lt;div class="text_cell_render border-box-sizing rendered_html"&gt;
 &lt;p&gt;Using these tools, you can augment the built-in Ibis DSL constructs to suit your needs, implementing analytics faster with less code.&lt;/p&gt;
-&lt;/div&gt;&lt;/p&gt;</summary></entry><entry><title>Leveraging SQL window functions in Ibis</title><link href="http://blog.ibis-project.org/sql-window-functions/" rel="alternate"></link><updated>2015-08-17T08:00:00-07:00</updated><author><name>Wes McKinney</name></author><id>tag:blog.ibis-project.org,2015-08-17:sql-window-functions/</id><summary type="html">&lt;p&gt;
+&lt;/div&gt;&lt;/p&gt;</summary></entry><entry><title>Leveraging SQL window functions in Ibis</title><link href="http://www.ibis-project.org/sql-window-functions/" rel="alternate"></link><updated>2015-08-17T08:00:00-07:00</updated><author><name>Wes McKinney</name></author><id>tag:www.ibis-project.org,2015-08-17:sql-window-functions/</id><summary type="html">&lt;p&gt;
 &lt;div class="text_cell_render border-box-sizing rendered_html"&gt;
 
 
@@ -5256,7 +5687,7 @@ True
 &lt;div class="text_cell_render border-box-sizing rendered_html"&gt;
 &lt;h1 id="takeaway"&gt;Takeaway&lt;/h1&gt;
 &lt;p&gt;There's no reason for analytics in a SQL engine requiring window functions to be so tedious. If you're an avid user of the tools described in this post, I'd love to hear your feedback about how to make things even more productive.&lt;/p&gt;
-&lt;/div&gt;&lt;/p&gt;</summary></entry><entry><title>Ibis 0.4.0 release</title><link href="http://blog.ibis-project.org/release-0.4/" rel="alternate"></link><updated>2015-08-14T09:30:00-07:00</updated><author><name>Wes McKinney</name></author><id>tag:blog.ibis-project.org,2015-08-14:release-0.4/</id><summary type="html">
+&lt;/div&gt;&lt;/p&gt;</summary></entry><entry><title>Ibis 0.4.0 release</title><link href="http://www.ibis-project.org/release-0.4/" rel="alternate"></link><updated>2015-08-14T09:30:00-07:00</updated><author><name>Wes McKinney</name></author><id>tag:www.ibis-project.org,2015-08-14:release-0.4/</id><summary type="html">
 
 &lt;p&gt;The next Ibis release is out, check out the detailed &lt;a href="http://docs.ibis-project.org/release.html"&gt;release notes&lt;/a&gt;.&lt;/p&gt;
 
@@ -5295,7 +5726,7 @@ following compute engines:&lt;/p&gt;
 &lt;li&gt;SQLite&lt;/li&gt;
 &lt;li&gt;Presto&lt;/li&gt;
 &lt;/ul&gt;
-&lt;p&gt;If interested please contact me.&lt;/p&gt;</summary></entry><entry><title>Ibis Design: Modeling high level analytics tasks</title><link href="http://blog.ibis-project.org/design-modeling-analytics-1/" rel="alternate"></link><updated>2015-08-10T08:00:00-07:00</updated><author><name>Wes McKinney</name></author><id>tag:blog.ibis-project.org,2015-08-10:design-modeling-analytics-1/</id><summary type="html">&lt;p&gt;
+&lt;p&gt;If interested please contact me.&lt;/p&gt;</summary></entry><entry><title>Ibis Design: Modeling high level analytics tasks</title><link href="http://www.ibis-project.org/design-modeling-analytics-1/" rel="alternate"></link><updated>2015-08-10T08:00:00-07:00</updated><author><name>Wes McKinney</name></author><id>tag:www.ibis-project.org,2015-08-10:design-modeling-analytics-1/</id><summary type="html">&lt;p&gt;
 &lt;div class="text_cell_render border-box-sizing rendered_html"&gt;
 
 &lt;p&gt;Outside of scalability and high performance on large data sets with Python, Ibis is focused on simplifying analytics tasks for end users. By designing a rich pandas-like domain specific language (DSL) embedded in Python code, we can hide away the complexities normally associated with expressing analytical concepts in SQL or some other tool. This post gives some specific examples and shows how we're solving them in Ibis. &lt;/p&gt;
@@ -6150,7 +6581,7 @@ In&amp;nbsp;[13]:
 &lt;/div&gt;
 &lt;div class="text_cell_render border-box-sizing rendered_html"&gt;
 &lt;p&gt;In future posts I'll go into some more detail on category types in Ibis (like the result of &lt;code&gt;bucket&lt;/code&gt;) and some of the other tools used here.&lt;/p&gt;
-&lt;/div&gt;&lt;/p&gt;</summary></entry><entry><title>Using other compute engines with Ibis</title><link href="http://blog.ibis-project.org/other-compute-engines/" rel="alternate"></link><updated>2015-08-02T22:22:00-07:00</updated><author><name>Wes McKinney</name></author><id>tag:blog.ibis-project.org,2015-08-02:other-compute-engines/</id><summary type="html">
+&lt;/div&gt;&lt;/p&gt;</summary></entry><entry><title>Using other compute engines with Ibis</title><link href="http://www.ibis-project.org/other-compute-engines/" rel="alternate"></link><updated>2015-08-02T22:22:00-07:00</updated><author><name>Wes McKinney</name></author><id>tag:www.ibis-project.org,2015-08-02:other-compute-engines/</id><summary type="html">
 
 &lt;p&gt;Several people have asked me about using Ibis with execution engines other than
 Impala. The purpose of this post is to explain how one can make Ibis work with
@@ -6363,7 +6794,7 @@ straightforward and incremental. I will happily welcome well-tested
 contributions to the project.&lt;/p&gt;
 &lt;p&gt;In an upcoming blog post, I will write in some more detail about how Ibis will
 help bring about a post-SQL world and why that will be a productivity boon for
-data analysts everywhere.&lt;/p&gt;</summary></entry><entry><title>Hello World</title><link href="http://blog.ibis-project.org/hello-world/" rel="alternate"></link><updated>2015-07-23T19:41:00-07:00</updated><author><name>Wes McKinney</name></author><id>tag:blog.ibis-project.org,2015-07-23:hello-world/</id><summary type="html">
+data analysts everywhere.&lt;/p&gt;</summary></entry><entry><title>Hello World</title><link href="http://www.ibis-project.org/hello-world/" rel="alternate"></link><updated>2015-07-23T19:41:00-07:00</updated><author><name>Wes McKinney</name></author><id>tag:www.ibis-project.org,2015-07-23:hello-world/</id><summary type="html">
 
 &lt;p&gt;Welcome to the Ibis project blog. As the project develops we'll post here
 periodically with:&lt;/p&gt;
